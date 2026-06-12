@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Família Santos">
+<meta name="theme-color" content="#185FA5">
+<title>Planejamento Financeiro · Família Santos</title>
+<style>
+:root {
+  --blue: #185FA5;
+  --blue-light: #E6F1FB;
+  --blue-mid: #B5D4F4;
+  --green: #1D9E75;
+  --green-light: #E1F5EE;
+  --red: #E24B4A;
+  --red-light: #FCEBEB;
+  --amber: #BA7517;
+  --amber-light: #FAEEDA;
+  --amber-mid: #EF9F27;
+  --purple: #534AB7;
+  --purple-light: #EEEDFE;
+  --gray: #5F5E5A;
+  --gray-light: #F1EFE8;
+  --bg: #F7F7F5;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.10);
+  --border-md: rgba(0,0,0,0.18);
+  --text: #1A1A1A;
+  --text-2: #555552;
+  --text-3: #888780;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111110;
+    --surface: #1C1C1A;
+    --border: rgba(255,255,255,0.10);
+    --border-md: rgba(255,255,255,0.18);
+    --text: #F0EFE8;
+    --text-2: #AEADA6;
+    --text-3: #6B6A65;
+    --blue-light: #0c2d4a;
+    --green-light: #05332A;
+    --red-light: #330f0f;
+    --amber-light: #2e1d05;
+    --purple-light: #1e1b4a;
+    --gray-light: #222220;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 15px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* HEADER */
+.header { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 100; }
+.header-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--blue-light); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; color: var(--blue); flex-shrink: 0; }
+.header-text { flex: 1; min-width: 0; }
+.header-title { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+.header-actions { display: flex; gap: 6px; align-items: center; }
+.icon-btn { width: 34px; height: 34px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-md); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: 17px; }
+select.mes-select { font-size: 12px; padding: 5px 8px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-md); background: var(--surface); color: var(--text); cursor: pointer; }
+
+/* NAV */
+.nav-wrap { background: var(--surface); border-bottom: 0.5px solid var(--border); position: sticky; top: 63px; z-index: 99; overflow-x: auto; scrollbar-width: none; }
+.nav-wrap::-webkit-scrollbar { display: none; }
+.nav { display: flex; max-width: 800px; margin: 0 auto; padding: 0 8px; }
+.nav-btn { flex-shrink: 0; padding: 10px 14px; font-size: 13px; font-weight: 500; color: var(--text-3); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+.nav-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.nav-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* CONTENT */
+.content { max-width: 800px; margin: 0 auto; padding: 16px; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* CARDS & GRIDS */
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+@media (max-width: 520px) {
+  .grid4 { grid-template-columns: 1fr 1fr; }
+  .grid3 { grid-template-columns: 1fr 1fr; }
+  .header-title { font-size: 13px; }
+}
+@media (max-width: 380px) {
+  .grid2 { grid-template-columns: 1fr; }
+}
+
+/* METRIC TILES */
+.metric { background: var(--gray-light); border-radius: var(--radius-sm); padding: 12px; }
+.metric-label { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.metric-value { font-size: 18px; font-weight: 600; }
+.metric-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+/* ROWS */
+.row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; gap: 8px; }
+.row:last-child { border-bottom: none; }
+.row-left { flex: 1; min-width: 0; }
+.row-right { flex-shrink: 0; font-weight: 500; }
+
+/* TAGS/BADGES */
+.tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+.tag-green { background: var(--green-light); color: var(--green); }
+.tag-red { background: var(--red-light); color: var(--red); }
+.tag-amber { background: var(--amber-light); color: var(--amber); }
+.tag-blue { background: var(--blue-light); color: var(--blue); }
+.tag-gray { background: var(--gray-light); color: var(--text-3); }
+.tag-purple { background: var(--purple-light); color: var(--purple); }
+
+/* COLORS */
+.c-green { color: var(--green); }
+.c-red { color: var(--red); }
+.c-amber { color: var(--amber); }
+.c-blue { color: var(--blue); }
+
+/* PROGRESS */
+.progress-bar { height: 6px; background: var(--gray-light); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+/* DIVIDER */
+.divider { height: 0.5px; background: var(--border); margin: 10px 0; }
+
+/* FORMS */
+.form-group { margin-bottom: 10px; }
+.form-label { font-size: 12px; color: var(--text-2); margin-bottom: 4px; display: block; }
+.form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.form-row .form-group { flex: 1; min-width: 110px; }
+input[type=text], input[type=number], input[type=date], select, textarea {
+  width: 100%; padding: 9px 11px; font-size: 14px; border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-md); background: var(--surface); color: var(--text);
+  outline: none; -webkit-appearance: none; appearance: none;
+}
+input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-block { width: 100%; justify-content: center; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-ghost { background: transparent; border: 0.5px solid var(--border-md); color: var(--text-2); }
+.btn-danger-ghost { background: transparent; border: 0.5px solid var(--red); color: var(--red); padding: 4px 8px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; }
+
+/* CARTÃO VISUAL */
+.cartao-visual { border-radius: 12px; padding: 16px; color: white; margin-bottom: 12px; position: relative; overflow: hidden; min-height: 90px; display: flex; flex-direction: column; justify-content: space-between; }
+.cartao-visual::after { content: ''; position: absolute; right: -20px; top: -20px; width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.cartao-nome { font-size: 13px; font-weight: 600; opacity: 0.9; }
+.cartao-limite { font-size: 20px; font-weight: 700; }
+.cartao-sub { font-size: 11px; opacity: 0.75; }
+
+/* INFO BOX */
+.info-box { background: var(--blue-light); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--blue); margin-top: 8px; }
+.warn-box { background: var(--amber-light); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--amber); margin-top: 8px; }
+.success-box { background: var(--green-light); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 12px; color: var(--green); margin-top: 8px; }
+
+/* TOAST */
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1A1A1A; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 9999; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 24px 0; color: var(--text-3); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="avatar">FS</div>
+    <div class="header-text">
+      <div class="header-title">Planejamento Financeiro · Família Santos</div>
+      <div class="header-sub" id="sub-mes">Junho 2026</div>
+    </div>
+    <div class="header-actions">
+      <select class="mes-select" id="mes-sel" onchange="mudarMes()">
+        <option value="2026-06">Jun/2026</option>
+        <option value="2026-07">Jul/2026</option>
+        <option value="2026-08">Ago/2026</option>
+        <option value="2026-09">Set/2026</option>
+        <option value="2026-10">Out/2026</option>
+        <option value="2026-11">Nov/2026</option>
+        <option value="2026-12">Dez/2026</option>
+      </select>
+      <button class="icon-btn" onclick="exportarDados()" title="Exportar dados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav class="nav-wrap">
+  <div class="nav">
+    <button class="nav-btn active" onclick="showTab('painel',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Painel
+    </button>
+    <button class="nav-btn" onclick="showTab('cartoes',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Cartões
+    </button>
+    <button class="nav-btn" onclick="showTab('despesas',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Despesas
+    </button>
+    <button class="nav-btn" onclick="showTab('lancamento',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar
+    </button>
+    <button class="nav-btn" onclick="showTab('emprestimos',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      Empréstimos
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+<!-- ==================== PAINEL ==================== -->
+<div id="tab-painel" class="section active">
+
+  <div class="grid4">
+    <div class="metric">
+      <div class="metric-label">Renda total</div>
+      <div class="metric-value c-green" id="p-receita">R$ 8.500</div>
+      <div class="metric-sub">Mês atual</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Contas fixas</div>
+      <div class="metric-value" id="p-fixas">R$ 5.397</div>
+      <div class="metric-sub">Dia 05 + Dia 20</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Saldo disponível</div>
+      <div class="metric-value" id="p-saldo" style="color:var(--green);">—</div>
+      <div class="metric-sub">Após fixas e cartões</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Faturas abertas</div>
+      <div class="metric-value c-amber" id="p-faturas">—</div>
+      <div class="metric-sub">3 cartões</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Distribuição</div>
+      <div class="row"><span class="row-left">Contas fixas dia 05</span><span class="row-right c-red">R$ 3.357</span></div>
+      <div class="row"><span class="row-left">Contas fixas dia 20</span><span class="row-right c-red">R$ 2.040</span></div>
+      <div class="row"><span class="row-left">Cartão Wellington</span><span class="row-right c-amber" id="dist-wel">—</span></div>
+      <div class="row"><span class="row-left">Cartão Yvoneide</span><span class="row-right c-amber" id="dist-yvo">—</span></div>
+      <div class="row"><span class="row-left">Cartão Luana</span><span class="row-right c-amber" id="dist-luana">—</span></div>
+      <div class="row"><span class="row-left">Variáveis do mês</span><span class="row-right c-amber" id="dist-var">—</span></div>
+      <div class="divider"></div>
+      <div class="row"><span class="row-left" style="font-weight:600;">Total comprometido</span><span class="row-right c-red" id="total-comp">—</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Saúde financeira</div>
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Renda comprometida</span><span id="pct-renda" class="c-amber">—</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-renda" style="width:0%;background:var(--amber-mid);"></div></div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Limite Wellington usado</span><span id="pct-wel" class="c-blue">—</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-wel" style="width:0%;background:var(--blue);"></div></div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Limite Yvoneide usado</span><span id="pct-yvo" class="c-amber">—</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-yvo" style="width:0%;background:var(--amber-mid);"></div></div>
+      </div>
+      <div style="margin-bottom:4px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Limite Luana usado</span><span id="pct-luana" class="c-green">—</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-luana" style="width:0%;background:var(--green);"></div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="warn-box">Empréstimos comprometem R$ 357/mês</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Próximos vencimentos</div>
+    <div class="row"><span class="row-left"><span class="tag tag-red" style="margin-right:6px;">Dia 05</span>Escola Lucas/Lívia</span><span class="row-right c-red">R$ 778,00</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-red" style="margin-right:6px;">Dia 05</span>Plano de saúde</span><span class="row-right c-red">R$ 570,99</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-red" style="margin-right:6px;">Dia 05</span>Carro (financiamento)</span><span class="row-right c-red">R$ 1.366,00</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-red" style="margin-right:6px;">Dia 05</span>Empréstimo 01/04</span><span class="row-right c-red">R$ 219,83</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-amber" style="margin-right:6px;">Dia 20</span>Empréstimo 07/10</span><span class="row-right c-amber">R$ 136,82</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-blue" style="margin-right:6px;">Dia 20</span>Fatura Wellington</span><span class="row-right c-blue" id="venc-wel">—</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-blue" style="margin-right:6px;">Dia 20</span>Fatura Yvoneide</span><span class="row-right c-blue" id="venc-yvo">—</span></div>
+    <div class="row"><span class="row-left"><span class="tag tag-blue" style="margin-right:6px;">Dia 20</span>Fatura Luana</span><span class="row-right c-blue" id="venc-luana">—</span></div>
+  </div>
+
+</div>
+
+<!-- ==================== CARTÕES ==================== -->
+<div id="tab-cartoes" class="section">
+
+  <!-- WELLINGTON -->
+  <div class="card">
+    <div class="cartao-visual" style="background: linear-gradient(135deg, #185FA5, #0c3d6b);">
+      <div class="cartao-nome">Wellington · Nubank</div>
+      <div>
+        <div class="cartao-limite" id="cv-disp-wel">—</div>
+        <div class="cartao-sub">disponível de R$ 3.000</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px;">
+      <div class="metric"><div class="metric-label">Fatura atual</div><div class="metric-value c-amber" id="fat-wel">—</div></div>
+      <div class="metric"><div class="metric-label">Disponível</div><div class="metric-value c-green" id="disp-wel">—</div></div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Uso do limite</span><span id="pct-wel-label" class="c-blue">—</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-wel" style="width:0%;background:var(--blue);"></div></div>
+    </div>
+    <div class="card-title" style="font-size:13px;margin-bottom:6px;">Parcelas em aberto</div>
+    <div id="parcelas-wel"><div class="empty">Nenhuma parcela ativa</div></div>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px;" onclick="showTabBtn('lancamento')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar compra
+    </button>
+  </div>
+
+  <!-- YVONEIDE -->
+  <div class="card">
+    <div class="cartao-visual" style="background: linear-gradient(135deg, #854F0B, #4A2705);">
+      <div class="cartao-nome">Yvoneide · Nubank</div>
+      <div>
+        <div class="cartao-limite" id="cv-disp-yvo">—</div>
+        <div class="cartao-sub">disponível de R$ 2.000</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px;">
+      <div class="metric"><div class="metric-label">Fatura atual</div><div class="metric-value c-amber" id="fat-yvo">—</div></div>
+      <div class="metric"><div class="metric-label">Disponível</div><div class="metric-value c-green" id="disp-yvo">—</div></div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Uso do limite</span><span id="pct-yvo-label" class="c-amber">—</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-yvo" style="width:0%;background:var(--amber-mid);"></div></div>
+    </div>
+    <div class="card-title" style="font-size:13px;margin-bottom:6px;">Parcelas em aberto</div>
+    <div id="parcelas-yvo"></div>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px;" onclick="showTabBtn('lancamento')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar compra
+    </button>
+  </div>
+
+  <!-- LUANA -->
+  <div class="card">
+    <div class="cartao-visual" style="background: linear-gradient(135deg, #0F6E56, #063829);">
+      <div class="cartao-nome">Luana · Nubank</div>
+      <div>
+        <div class="cartao-limite" id="cv-disp-luana">—</div>
+        <div class="cartao-sub">disponível de R$ 1.500</div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px;">
+      <div class="metric"><div class="metric-label">Fatura atual</div><div class="metric-value c-green" id="fat-luana">—</div></div>
+      <div class="metric"><div class="metric-label">Disponível</div><div class="metric-value c-green" id="disp-luana">—</div></div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Uso do limite</span><span id="pct-luana-label" class="c-green">—</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-luana" style="width:0%;background:var(--green);"></div></div>
+    </div>
+    <div class="card-title" style="font-size:13px;margin-bottom:6px;">Parcelas em aberto</div>
+    <div id="parcelas-luana"><div class="empty">Nenhuma parcela ativa</div></div>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:10px;" onclick="showTabBtn('lancamento')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar compra
+    </button>
+  </div>
+
+  <!-- SIMULADOR -->
+  <div class="card">
+    <div class="card-title">Simular nova compra</div>
+    <p style="font-size:12px;color:var(--text-3);margin-bottom:12px;">Veja como a compra afeta sua fatura e limite disponível antes de fechar</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cartão</label>
+        <select id="sim-cartao">
+          <option value="wel">Wellington</option>
+          <option value="yvo">Yvoneide</option>
+          <option value="lua">Luana</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor total (R$)</label>
+        <input type="number" id="sim-valor" placeholder="0,00" inputmode="decimal">
+      </div>
+      <div class="form-group" style="max-width:90px;">
+        <label class="form-label">Parcelas</label>
+        <input type="number" id="sim-parc" value="1" min="1" max="48">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="simularFatura()" style="margin-bottom:8px;">Simular</button>
+    <div id="sim-resultado" style="font-size:13px;color:var(--text-3);min-height:20px;"></div>
+  </div>
+
+</div>
+
+<!-- ==================== DESPESAS ==================== -->
+<div id="tab-despesas" class="section">
+
+  <div class="card">
+    <div class="card-title">Contas fixas · Dia 05</div>
+    <div class="row"><span class="row-left">Dízimo Wellington (3 partes)</span><span class="row-right">R$ 470,00</span></div>
+    <div class="row"><span class="row-left">Oferta</span><span class="row-right">R$ 20,00</span></div>
+    <div class="row"><span class="row-left">Gás</span><span class="row-right">R$ 60,00</span></div>
+    <div class="row"><span class="row-left">Internet</span><span class="row-right">R$ 99,90</span></div>
+    <div class="row"><span class="row-left">Plano celular Luana</span><span class="row-right">R$ 29,90</span></div>
+    <div class="row"><span class="row-left">Plano celular Lívia</span><span class="row-right">R$ 32,90</span></div>
+    <div class="row"><span class="row-left">IPTV</span><span class="row-right">R$ 20,00</span></div>
+    <div class="row"><span class="row-left">Escola Lucas/Lívia</span><span class="row-right">R$ 778,00</span></div>
+    <div class="row"><span class="row-left">Carro (financiamento)</span><span class="row-right c-red">R$ 1.366,00</span></div>
+    <div class="row"><span class="row-left">Combustível</span><span class="row-right">R$ 200,00</span></div>
+    <div class="row"><span class="row-left">Empréstimo 01/04</span><span class="row-right c-red">R$ 219,83</span></div>
+    <div class="row"><span class="row-left">Cabeleireiro</span><span class="row-right">R$ 60,00</span></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-left" style="font-weight:600;">Total Dia 05</span><span class="row-right c-red" style="font-weight:600;">R$ 3.356,53</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Contas fixas · Dia 20</div>
+    <div class="row"><span class="row-left">Dízimo Wellington</span><span class="row-right">R$ 400,00</span></div>
+    <div class="row"><span class="row-left">Luz / Água</span><span class="row-right">R$ 220,00</span></div>
+    <div class="row"><span class="row-left">Gás</span><span class="row-right">R$ 60,00</span></div>
+    <div class="row"><span class="row-left">YouTube</span><span class="row-right">R$ 10,78</span></div>
+    <div class="row"><span class="row-left">Oferta</span><span class="row-right">R$ 20,00</span></div>
+    <div class="row"><span class="row-left">DAS (MEI)</span><span class="row-right">R$ 82,00</span></div>
+    <div class="row"><span class="row-left">Mazé Perfume</span><span class="row-right">R$ 100,00</span></div>
+    <div class="row"><span class="row-left">Empréstimo 07/10</span><span class="row-right c-red">R$ 136,82</span></div>
+    <div class="row"><span class="row-left">Futsal Lucas</span><span class="row-right">R$ 85,00</span></div>
+    <div class="row"><span class="row-left">Combustível</span><span class="row-right">R$ 200,00</span></div>
+    <div class="row"><span class="row-left">Netflix</span><span class="row-right">R$ 72,80</span></div>
+    <div class="row"><span class="row-left">Alimentação (reserva)</span><span class="row-right">R$ 600,00</span></div>
+    <div class="row"><span class="row-left">Google One</span><span class="row-right">R$ 20,00</span></div>
+    <div class="row"><span class="row-left">Academia</span><span class="row-right">R$ 32,90</span></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-left" style="font-weight:600;">Total Dia 20</span><span class="row-right c-red" style="font-weight:600;">R$ 2.040,30</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Lançamentos variáveis do mês</div>
+    <div id="lista-variaveis"><div class="empty">Nenhum lançamento ainda. Use a aba "Lançar".</div></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-left" style="font-weight:600;">Total variáveis</span><span class="row-right" id="total-variaveis" style="font-weight:600;">R$ 0,00</span></div>
+  </div>
+
+</div>
+
+<!-- ==================== LANÇAR ==================== -->
+<div id="tab-lancamento" class="section">
+
+  <div class="card">
+    <div class="card-title">Registrar despesa</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" id="lanc-data">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Forma de pagamento</label>
+        <select id="lanc-forma">
+          <option value="pix">Dinheiro / Pix</option>
+          <option value="wel">Cartão Wellington</option>
+          <option value="yvo">Cartão Yvoneide</option>
+          <option value="lua">Cartão Luana</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição</label>
+      <input type="text" id="lanc-desc" placeholder="Ex: Farmácia, Supermercado, Loja...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Valor (R$)</label>
+        <input type="number" id="lanc-valor" placeholder="0,00" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select id="lanc-cat">
+          <option>Alimentação</option>
+          <option>Saúde/Farmácia</option>
+          <option>Transporte</option>
+          <option>Educação/Filhos</option>
+          <option>Lazer</option>
+          <option>Roupas/Calçados</option>
+          <option>Casa/Utilidades</option>
+          <option>Outros</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="lancarDespesa()">Registrar despesa</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Registrar compra parcelada</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Cartão</label>
+        <select id="parc-cartao">
+          <option value="wel">Wellington</option>
+          <option value="yvo">Yvoneide</option>
+          <option value="lua">Luana</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nº de parcelas</label>
+        <input type="number" id="parc-num" value="2" min="2" max="48">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Produto / Descrição</label>
+      <input type="text" id="parc-desc" placeholder="Ex: Geladeira, Tênis, Remédio...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor total (R$)</label>
+      <input type="number" id="parc-valor" placeholder="0,00" inputmode="decimal" oninput="calcParcela()">
+    </div>
+    <div id="parc-preview" style="font-size:13px;color:var(--blue);min-height:18px;margin-bottom:10px;"></div>
+    <button class="btn btn-primary btn-block" onclick="lancarParcela()">Adicionar ao cartão</button>
+  </div>
+
+</div>
+
+<!-- ==================== EMPRÉSTIMOS ==================== -->
+<div id="tab-emprestimos" class="section">
+
+  <div class="grid2">
+    <div class="metric"><div class="metric-label">Total mensal</div><div class="metric-value c-red">R$ 357/mês</div><div class="metric-sub">Comprometido</div></div>
+    <div class="metric"><div class="metric-label">Estimativa total</div><div class="metric-value c-amber">R$ 3.200</div><div class="metric-sub">Saldo a pagar</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Empréstimo 01/04/2026</div>
+    <div class="row"><span class="row-left">Parcela mensal</span><span class="row-right c-red">R$ 219,83</span></div>
+    <div class="row"><span class="row-left">Vencimento</span><span class="row-right">Todo dia 05</span></div>
+    <div class="row"><span class="row-left">Previsão de quitação</span><span class="row-right c-amber">Set/2026</span></div>
+    <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:10%;background:var(--red);"></div></div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:4px;">~1 de 10 parcelas pagas</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Empréstimo 07/10/2025</div>
+    <div class="row"><span class="row-left">Parcela mensal</span><span class="row-right c-red">R$ 136,82</span></div>
+    <div class="row"><span class="row-left">Vencimento</span><span class="row-right">Todo dia 20</span></div>
+    <div class="row"><span class="row-left">Previsão de quitação</span><span class="row-right c-green">Out/2026</span></div>
+    <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:60%;background:var(--amber-mid);"></div></div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:4px;">~6 de 10 parcelas pagas</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Projeção de quitação</div>
+    <div class="row"><span class="row-left">Empréstimo 07/10</span><span class="row-right c-green">Out/2026</span></div>
+    <div class="row"><span class="row-left">Empréstimo 01/04</span><span class="row-right c-amber">Set/2026</span></div>
+    <div class="divider"></div>
+    <div class="row"><span class="row-left" style="font-weight:600;">Alívio após quitação</span><span class="row-right c-green" style="font-weight:600;">+ R$ 357/mês</span></div>
+    <div class="success-box" style="margin-top:10px;">Ao quitar os dois empréstimos, você terá R$ 357/mês extras — o suficiente para montar uma reserva de emergência de ~R$ 2.850 em 8 meses.</div>
+  </div>
+
+</div>
+
+</main>
+
+<script>
+const SK = 'finSantos_v2';
+
+const DEF = {
+  parWel: [],
+  parYvo: [
+    {desc:'SAE Digital - Livros Lívia', parc:'9/10', valor:119.40},
+    {desc:'Lasarelettro - Fogão', parc:'7/10', valor:109.79},
+    {desc:'IAP Cosméticos (Botox)', parc:'2/3', valor:61.43},
+    {desc:'Ecommerce - Livros Lucas', parc:'9/10', valor:108.90},
+    {desc:'Lasarelettro - Fogão (acess.)', parc:'7/10', valor:7.90},
+    {desc:'Ban Ban Calçados - Lucas', parc:'2/3', valor:74.96},
+    {desc:'Netflix', parc:'Permanente', valor:72.80},
+    {desc:'Gympass Wellington', parc:'Permanente', valor:35.90},
+    {desc:'Clínica Sim Plano', parc:'Permanente', valor:40.00},
+    {desc:'Remédio farmácia', parc:'1/3', valor:40.44},
+    {desc:'Fin. Pix Crédito (2/3)', parc:'2/3', valor:127.62},
+    {desc:'Fin. Pix Crédito (1/3)', parc:'1/3', valor:212.50},
+  ],
+  parLua: [],
+  despesas: [],
+  mesSel: '2026-06',
+  limWel: 3000,
+  limYvo: 2000,
+  limLua: 1500,
+};
+
+let S = JSON.parse(JSON.stringify(DEF));
+
+function salvar() {
+  try { localStorage.setItem(SK, JSON.stringify(S)); toast('Salvo ✓'); } catch(e){}
+}
+function carregar() {
+  try {
+    const r = localStorage.getItem(SK);
+    if (r) { const d=JSON.parse(r); Object.assign(S, d); }
+  } catch(e){}
+}
+
+function fmt(v) {
+  return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+const MESES = {'2026-06':'Junho 2026','2026-07':'Julho 2026','2026-08':'Agosto 2026','2026-09':'Setembro 2026','2026-10':'Outubro 2026','2026-11':'Novembro 2026','2026-12':'Dezembro 2026'};
+
+function mudarMes() {
+  S.mesSel = document.getElementById('mes-sel').value;
+  document.getElementById('sub-mes').textContent = MESES[S.mesSel] || S.mesSel;
+  salvar();
+}
+
+function corPct(p) { return p>85?'var(--red)':p>60?'var(--amber-mid)':'var(--green)'; }
+
+function renderParcelas(lista, id) {
+  const el = document.getElementById(id);
+  if (!lista.length) { el.innerHTML='<div class="empty">Nenhuma parcela ativa</div>'; return; }
+  el.innerHTML = lista.map((p,i)=>`
+    <div class="row">
+      <span class="row-left" style="font-size:12px;">${p.desc} <span class="tag tag-gray">${p.parc}</span></span>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+        <span style="font-size:13px;font-weight:500;">${fmt(p.valor)}</span>
+        <button class="btn-danger-ghost" onclick="remParcela('${id}',${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function remParcela(id, i) {
+  const map = {'parcelas-wel':'parWel','parcelas-yvo':'parYvo','parcelas-luana':'parLua'};
+  S[map[id]].splice(i,1);
+  salvar(); updateAll();
+}
+
+function updateAll() {
+  const fWel = S.parWel.reduce((s,p)=>s+p.valor,0);
+  const fYvo = S.parYvo.reduce((s,p)=>s+p.valor,0);
+  const fLua = S.parLua.reduce((s,p)=>s+p.valor,0);
+  const totalVar = S.despesas.reduce((s,d)=>s+d.valor,0);
+  const fixas = 3356.53 + 2040.30;
+  const totalComp = fixas + fWel + fYvo + fLua + totalVar;
+  const renda = 8500;
+  const saldo = renda - totalComp;
+  const pWel = Math.min(100, Math.round(fWel/S.limWel*100));
+  const pYvo = Math.min(100, Math.round(fYvo/S.limYvo*100));
+  const pLua = Math.min(100, Math.round(fLua/S.limLua*100));
+  const pRenda = Math.min(100, Math.round(totalComp/renda*100));
+
+  // Painel
+  set('p-saldo', fmt(saldo), saldo>=0?'var(--green)':'var(--red)');
+  set('p-faturas', fmt(fWel+fYvo+fLua));
+  set('dist-wel', fmt(fWel));
+  set('dist-yvo', fmt(fYvo));
+  set('dist-luana', fmt(fLua));
+  set('dist-var', fmt(totalVar));
+  set('total-comp', fmt(totalComp));
+  setBar('pct-renda','bar-renda',pRenda);
+  setBar('pct-wel','bar-wel',pWel);
+  setBar('pct-yvo','bar-yvo',pYvo);
+  setBar('pct-luana','bar-luana',pLua);
+  set('venc-wel', fmt(fWel));
+  set('venc-yvo', fmt(fYvo));
+  set('venc-luana', fmt(fLua));
+
+  // Wellington
+  set('cv-disp-wel', fmt(S.limWel-fWel));
+  set('fat-wel', fmt(fWel));
+  set('disp-wel', fmt(S.limWel-fWel));
+  setBar('pct-wel-label','prog-wel',pWel,'c-blue','var(--blue)');
+  renderParcelas(S.parWel,'parcelas-wel');
+
+  // Yvoneide
+  set('cv-disp-yvo', fmt(S.limYvo-fYvo));
+  set('fat-yvo', fmt(fYvo));
+  set('disp-yvo', fmt(S.limYvo-fYvo));
+  setBar('pct-yvo-label','prog-yvo',pYvo,'c-amber','var(--amber-mid)');
+  renderParcelas(S.parYvo,'parcelas-yvo');
+
+  // Luana
+  set('cv-disp-luana', fmt(S.limLua-fLua));
+  set('fat-luana', fmt(fLua));
+  set('disp-luana', fmt(S.limLua-fLua));
+  setBar('pct-luana-label','prog-luana',pLua,'c-green','var(--green)');
+  renderParcelas(S.parLua,'parcelas-luana');
+
+  // Variáveis
+  const listaEl = document.getElementById('lista-variaveis');
+  if (!S.despesas.length) {
+    listaEl.innerHTML = '<div class="empty">Nenhum lançamento ainda. Use a aba "Lançar".</div>';
+  } else {
+    listaEl.innerHTML = S.despesas.map((d,i)=>`
+      <div class="row">
+        <span class="row-left" style="font-size:13px;">${d.data} · ${d.desc} <span class="tag tag-gray">${d.cat}</span></span>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <span style="font-weight:500;">${fmt(d.valor)}</span>
+          <button class="btn-danger-ghost" onclick="remDespesa(${i})">✕</button>
+        </div>
+      </div>`).join('');
+  }
+  set('total-variaveis', fmt(totalVar));
+}
+
+function set(id, txt, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = txt;
+  if (color) el.style.color = color;
+}
+
+function setBar(labelId, barId, pct, labelClass, barColor) {
+  const lbl = document.getElementById(labelId);
+  const bar = document.getElementById(barId);
+  if (lbl) { lbl.textContent = pct + '%'; lbl.style.color = corPct(pct); }
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = corPct(pct); }
+}
+
+function showTab(t, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+function showTabBtn(t) {
+  const map = {painel:0,cartoes:1,despesas:2,lancamento:3,emprestimos:4};
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{ b.classList.remove('active'); if(i===map[t])b.classList.add('active'); });
+  document.getElementById('tab-'+t).classList.add('active');
+}
+
+function simularFatura() {
+  const c = document.getElementById('sim-cartao').value;
+  const v = parseFloat(document.getElementById('sim-valor').value)||0;
+  const p = parseInt(document.getElementById('sim-parc').value)||1;
+  const pv = v/p;
+  const map = {wel:{fat:S.parWel.reduce((s,x)=>s+x.valor,0),lim:S.limWel},yvo:{fat:S.parYvo.reduce((s,x)=>s+x.valor,0),lim:S.limYvo},lua:{fat:S.parLua.reduce((s,x)=>s+x.valor,0),lim:S.limLua}};
+  const {fat,lim} = map[c];
+  const nova = fat+pv;
+  const disp = lim-nova;
+  const pct = Math.round(nova/lim*100);
+  const cor = pct>90?'var(--red)':pct>60?'var(--amber)':'var(--green)';
+  document.getElementById('sim-resultado').innerHTML = `<span style="color:${cor};font-weight:500;">Nova fatura: ${fmt(nova)} (${pct}%) · Parcela: ${fmt(pv)}/mês · Disponível: ${fmt(Math.max(0,disp))}</span>`;
+}
+
+function lancarDespesa() {
+  const data = document.getElementById('lanc-data').value;
+  const desc = document.getElementById('lanc-desc').value.trim();
+  const valor = parseFloat(document.getElementById('lanc-valor').value)||0;
+  const cat = document.getElementById('lanc-cat').value;
+  const forma = document.getElementById('lanc-forma').value;
+  if (!desc||!valor) { toast('Preencha descrição e valor'); return; }
+  const d = data ? data.split('-').reverse().join('/') : 'Hoje';
+  if (forma==='wel') S.parWel.push({desc,parc:'1/1',valor});
+  else if (forma==='yvo') S.parYvo.push({desc,parc:'1/1',valor});
+  else if (forma==='lua') S.parLua.push({desc,parc:'1/1',valor});
+  else S.despesas.push({data:d,desc,valor,cat});
+  document.getElementById('lanc-desc').value='';
+  document.getElementById('lanc-valor').value='';
+  salvar(); updateAll(); showTabBtn('despesas');
+}
+
+function calcParcela() {
+  const v = parseFloat(document.getElementById('parc-valor').value)||0;
+  const n = parseInt(document.getElementById('parc-num').value)||1;
+  document.getElementById('parc-preview').textContent = v&&n>1 ? `${n}x de ${fmt(v/n)} · Total: ${fmt(v)}` : '';
+}
+
+function lancarParcela() {
+  const c = document.getElementById('parc-cartao').value;
+  const desc = document.getElementById('parc-desc').value.trim();
+  const valor = parseFloat(document.getElementById('parc-valor').value)||0;
+  const num = parseInt(document.getElementById('parc-num').value)||1;
+  if (!desc||!valor) { toast('Preencha produto e valor'); return; }
+  const entry = {desc, parc:'1/'+num, valor:valor/num};
+  if (c==='wel') S.parWel.push(entry);
+  else if (c==='yvo') S.parYvo.push(entry);
+  else S.parLua.push(entry);
+  document.getElementById('parc-desc').value='';
+  document.getElementById('parc-valor').value='';
+  document.getElementById('parc-preview').textContent='';
+  salvar(); updateAll(); toast('Adicionado ao cartão ✓');
+}
+
+function remDespesa(i) { S.despesas.splice(i,1); salvar(); updateAll(); }
+
+function exportarDados() {
+  const blob = new Blob([JSON.stringify({exportado:new Date().toLocaleString('pt-BR'),...S},null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'familia-santos-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Exportado!');
+}
+
+function toast(msg) {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+document.getElementById('parc-num').addEventListener('input', calcParcela);
+document.getElementById('lanc-data').value = new Date().toISOString().split('T')[0];
+document.getElementById('mes-sel').value = S.mesSel;
+document.getElementById('sub-mes').textContent = MESES[S.mesSel]||S.mesSel;
+
+carregar();
+document.getElementById('mes-sel').value = S.mesSel;
+document.getElementById('sub-mes').textContent = MESES[S.mesSel]||S.mesSel;
+updateAll();
+</script>
+</body>
+</html>
