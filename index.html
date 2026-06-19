@@ -311,8 +311,9 @@ select option{background:#1e1e35;}
     </div>
     <div class="fr">
       <div class="fg" style="max-width:110px;"><label class="fl">📅 Vence dia</label><input type="number" id="ne-dia" placeholder="5" min="1" max="31"></div>
-      <div class="fg"><label class="fl">🎯 Previsão quitação</label><input type="text" id="ne-prev" placeholder="Ex: Jun/2027"></div>
+      <div class="fg"><label class="fl">🗓️ Mês da 1ª parcela</label><input type="month" id="ne-inicio" placeholder="2026-06"></div>
     </div>
+    <div class="fg"><label class="fl">🎯 Previsão quitação</label><input type="text" id="ne-prev" placeholder="Ex: Jun/2027"></div>
     <button class="btn btn-main btn-block" onclick="salvarNovoEmp()" style="margin-top:8px;">✅ Adicionar empréstimo</button>
   </div>
 </div>
@@ -381,6 +382,7 @@ select option{background:#1e1e35;}
       <div class="row"><span class="row-left">🔵 Cartão Wellington</span><span class="row-right amber" id="dwel">—</span></div>
       <div class="row"><span class="row-left">🟠 Cartão Yvoneide</span><span class="row-right amber" id="dyvo">—</span></div>
       <div class="row"><span class="row-left">🟢 Cartão Luana</span><span class="row-right amber" id="dlua">—</span></div>
+      <div class="row"><span class="row-left">📉 Empréstimos</span><span class="row-right amber" id="demp">—</span></div>
       <div class="row"><span class="row-left">🛒 Variáveis</span><span class="row-right amber" id="dvar">—</span></div>
       <div class="divider"></div>
       <div class="row"><span class="row-left" style="font-weight:700;color:var(--text);">Total</span><span class="row-right red" id="dtot" style="font-size:15px;">—</span></div>
@@ -595,10 +597,10 @@ const DEF = {
   parL:[],desp:[],mesSel:'2026-06',
   emp:[
     {id:'e1',nome:'Empréstimo 01/04/2026',cartao:'Cartão Yvoneide',cartaoKey:'y',emoji:'🟠',
-     parcela:219.83,total:10,dia:5,prev:'Set/2026',
+     parcela:219.83,total:10,dia:5,prev:'Set/2026',dataInicio:'2026-04',
      pagas:[false,false,false,false,false,false,false,false,false,false]},
     {id:'e2',nome:'Empréstimo 07/10/2025',cartao:'Cartão Yvoneide',cartaoKey:'y',emoji:'🟠',
-     parcela:136.82,total:10,dia:20,prev:'Out/2026',
+     parcela:136.82,total:10,dia:20,prev:'Out/2026',dataInicio:'2025-10',
      pagas:[true,true,true,true,true,true,false,false,false,false]}
   ]
 };
@@ -705,7 +707,57 @@ function bar(lid,bid,pct){
 }
 
 // ── MÊS ──
-window.mudarMes=()=>{S.mesSel=document.getElementById('mes-sel').value;document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;scheduleSave();};
+window.mudarMes=()=>{S.mesSel=document.getElementById('mes-sel').value;document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;scheduleSave();updateAll();};
+
+// ── HELPERS DE MÊS ──
+// Converte 'DD/MM/YYYY' ou 'YYYY-MM' em {ano,mes} (1-based)
+function parseDataCompra(d){
+  if(!d)return null;
+  if(d.includes('/')){
+    const p=d.split('/');
+    if(p.length===3)return{ano:parseInt(p[2]),mes:parseInt(p[1])};
+    if(p.length===2)return{ano:parseInt(p[1]),mes:parseInt(p[0])};
+  }
+  if(d.includes('-')){
+    const p=d.split('-');
+    return{ano:parseInt(p[0]),mes:parseInt(p[1])};
+  }
+  return null;
+}
+// Quantos meses de diferença: mesSel(YYYY-MM) - dataCompra; positivo = mêsSel é depois
+function diffMeses(mesSel,dataCompra){
+  const dc=parseDataCompra(dataCompra);
+  if(!dc)return 0;
+  const ms=mesSel.split('-');
+  return (parseInt(ms[0])-dc.ano)*12+(parseInt(ms[1])-dc.mes);
+}
+
+// Valor que esta parcela contribui para a fatura do mêsSel
+function valorFaturaMesParaMes(p, mesSel){
+  if(p.permanente) return p.v; // sempre entra
+  const pg=p.pagas?p.pagas.filter(Boolean).length:0;
+  const total=p.total||1;
+  const quitado=pg>=total;
+  if(quitado) return 0;
+  // Se não tem data de compra, comportamento antigo: entra se não quitada
+  if(!p.dataCompra) return p.v;
+  const diff=diffMeses(mesSel,p.dataCompra);
+  // diff=0 → mês da compra é a parcela 1; diff=1 → parcela 2 etc.
+  const parcelaDesseMes=diff+1; // qual número de parcela cai nesse mês
+  if(parcelaDesseMes<1||parcelaDesseMes>total) return 0; // antes da compra ou já terminou
+  return p.v;
+}
+
+// Valor da parcela de empréstimo para o mêsSel
+function valorEmpMes(e, mesSel){
+  const pg=e.pagas.filter(Boolean).length;
+  if(pg>=e.total) return 0; // quitado
+  if(!e.dataInicio) return e.parcela; // sem data: comportamento antigo
+  const diff=diffMeses(mesSel,e.dataInicio);
+  const parcelaDesseMes=diff+1;
+  if(parcelaDesseMes<1||parcelaDesseMes>e.total) return 0;
+  return e.parcela;
+}
 
 // ── PARCELAS CARTÃO ──
 function migrarParcela(p){
@@ -726,13 +778,10 @@ function migrarParcela(p){
   return {d:p.d, v:p.v, total, pagas, id:'pc'+Date.now()+Math.random().toString(36).slice(2,7)};
 }
 
-// Valor que entra na fatura DESTE mês: para permanente é sempre o valor cheio;
-// para parcelada é o valor da parcela (só entra se ainda houver parcela em aberto)
+// Valor que entra na fatura DESTE mês (usa mesSel): para permanente é sempre o valor cheio;
+// para parcelada considera a data da compra e qual parcela cai neste mês
 function valorFaturaMes(p){
-  if(p.permanente) return p.v;
-  const pg=p.pagas?p.pagas.filter(Boolean).length:0;
-  const quitado=pg>=(p.total||1);
-  return quitado?0:p.v;
+  return valorFaturaMesParaMes(p, S.mesSel);
 }
 
 // Mantido para referência de "total restante" exibido na própria parcela (não usado mais no total da fatura)
@@ -748,6 +797,7 @@ function renderParcelas(lista,id){
   // migra formato antigo automaticamente
   for(let i=0;i<lista.length;i++) lista[i]=migrarParcela(lista[i]);
   if(!lista.length){el.innerHTML='<div class="empty">Nenhuma parcela ativa</div>';return;}
+  const mesSel=S.mesSel;
   el.innerHTML=lista.map((p,i)=>{
     if(p.permanente){
       return `<div class="parcela-compra">
@@ -764,6 +814,8 @@ function renderParcelas(lista,id){
     const pg=p.pagas.filter(Boolean).length;
     const restantes=p.total-pg;
     const quitado=pg===p.total;
+    const valorMes=valorFaturaMesParaMes(p,mesSel);
+    const foraDoMes=!quitado&&p.dataCompra&&valorMes===0;
     const stTag=quitado?'tg':pg>0?'ta':'tgray';
     const stTxt=quitado?'✅ Quitada':`${pg}/${p.total} pagas`;
     const btns=p.pagas.map((ok,k)=>{
@@ -771,16 +823,16 @@ function renderParcelas(lista,id){
       const cls=ok?'pago':isAtual?'atual':'pendente';
       return `<button class="pb pb-mini ${cls}" onclick="toggleParcelaCompra('${id}',${i},${k})" title="Parcela ${k+1}"><span>${ok?'✓':(k+1)}</span></button>`;
     }).join('');
-    return `<div class="parcela-compra">
+    return `<div class="parcela-compra" style="${foraDoMes?'opacity:0.45;':''}">
       <div class="row" style="border-bottom:none;padding-bottom:6px;">
-        <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag ${stTag}">${stTxt}</span></span>
+        <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag ${stTag}">${stTxt}</span>${foraDoMes?` <span class="tag tgray">Fora de ${MESES[mesSel]||mesSel}</span>`:''}</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <span style="font-weight:700;font-size:13px;">${fmt(p.v)}<span style="font-size:10px;color:var(--text-3);font-weight:500;">/parc.</span></span>
           <button class="btn-dx" onclick="remP('${id}',${i})">✕</button>
         </div>
       </div>
       ${p.total>1?`<div class="pg-mini">${btns}</div>`:''}
-      ${p.dataCompra?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">📅 Comprado em ${p.dataCompra}</div>`:''}
+      ${p.dataCompra?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">📅 Comprado em ${p.dataCompra}</div>`:`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">⚠️ Sem data de compra · entra em todos os meses até quitar</div>`}
       ${quitado?'':`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Em aberto: <strong style="color:var(--amber);">${fmt(valorAbertoParcela(p))}</strong> · ${restantes} parcela${restantes>1?'s':''} restante${restantes>1?'s':''}</div>`}
     </div>`;
   }).join('');
@@ -822,7 +874,7 @@ window.fillCfg=()=>{document.getElementById('clw').value=S.limW;document.getElem
 
 // ── EMPRÉSTIMOS ──
 window.abrirModal=()=>document.getElementById('modal-emp').classList.add('open');
-window.fecharModal=()=>{document.getElementById('modal-emp').classList.remove('open');['ne-nome','ne-parcela','ne-total','ne-dia','ne-prev'].forEach(id=>document.getElementById(id).value='');};
+window.fecharModal=()=>{document.getElementById('modal-emp').classList.remove('open');['ne-nome','ne-parcela','ne-total','ne-dia','ne-prev','ne-inicio'].forEach(id=>document.getElementById(id).value='');};
 document.getElementById('modal-emp').addEventListener('click',e=>{if(e.target===document.getElementById('modal-emp'))window.fecharModal();});
 
 window.salvarNovoEmp=()=>{
@@ -832,12 +884,13 @@ window.salvarNovoEmp=()=>{
   const total=parseInt(document.getElementById('ne-total').value)||0;
   const dia=parseInt(document.getElementById('ne-dia').value)||5;
   const prev=document.getElementById('ne-prev').value.trim()||'—';
+  const dataInicio=document.getElementById('ne-inicio').value||S.mesSel;
   if(!nome||!parcela||!total){toast('⚠️ Preencha todos os campos obrigatórios');return;}
   const cartaoNomes={w:'Cartão Wellington',y:'Cartão Yvoneide',l:'Cartão Luana'};
   const cartaoEmojis={w:'🔵',y:'🟠',l:'🟢'};
   const novoEmp={
     id:'e'+Date.now(),nome,cartao:cartaoNomes[ck],cartaoKey:ck,
-    emoji:cartaoEmojis[ck],parcela,total,dia,prev,
+    emoji:cartaoEmojis[ck],parcela,total,dia,prev,dataInicio,
     pagas:Array(total).fill(false)
   };
   S.emp.push(novoEmp);
@@ -848,10 +901,12 @@ window.salvarNovoEmp=()=>{
 function renderEmp(){
   const cont=document.getElementById('emp-cards'),proj=document.getElementById('emp-proj');
   if(!cont)return;
+  const mesSel=S.mesSel;
   let totMes=0,totPg=0,totAll=0;
   cont.innerHTML=S.emp.map(e=>{
     const pg=e.pagas.filter(Boolean).length,pct=Math.round(pg/e.total*100);
-    totMes+=e.parcela;totPg+=pg;totAll+=e.total;
+    const valorMes=valorEmpMes(e,mesSel);
+    totMes+=valorMes;totPg+=pg;totAll+=e.total;
     const cCls=e.cartaoKey==='w'?'tb':e.cartaoKey==='y'?'ta':'tg';
     const btns=e.pagas.map((ok,i)=>{
       const isAtual=!ok&&(i===0||e.pagas[i-1]);
@@ -860,14 +915,19 @@ function renderEmp(){
     }).join('');
     const stTag=pg===e.total?'tg':pg>e.total*.5?'ta':'tr';
     const stTxt=pg===e.total?'✅ Quitado':`${pg}/${e.total} pagas`;
-    return `<div class="ec">
+    // indicador do mês selecionado
+    const fora=valorMes===0&&pg<e.total;
+    const mesBadge=fora?`<span class="tag tgray" style="margin-left:4px;">Fora de ${MESES[mesSel]||mesSel}</span>`
+      :`<span class="tag tg" style="margin-left:4px;">Entra em ${MESES[mesSel]||mesSel}</span>`;
+    return `<div class="ec" style="${fora?'opacity:0.5':''}">
       <div class="ec-header">
         <div>
           <div class="ec-title">${e.emoji} ${e.nome}</div>
-          <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;"><span class="tag ${cCls}">${e.cartao}</span><span style="font-size:11px;color:var(--text-3);">📅 Dia ${e.dia} · ${e.prev}</span></div>
+          <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;"><span class="tag ${cCls}">${e.cartao}</span><span style="font-size:11px;color:var(--text-3);">📅 Dia ${e.dia} · ${e.prev}</span>${e.dataInicio?`<span style="font-size:11px;color:var(--text-3);">🗓️ Início: ${e.dataInicio.split('-').reverse().join('/')}</span>`:''}</div>
+          <div style="margin-top:4px;">${mesBadge}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:20px;font-weight:900;color:var(--red);">${fmt(e.parcela)}</div>
+          <div style="font-size:20px;font-weight:900;color:${fora?'var(--text-3)':'var(--red)'};">${fmt(valorMes||e.parcela)}</div>
           <div style="font-size:10px;color:var(--text-3);">por mês</div>
           <span class="tag ${stTag}" style="margin-top:4px;">${stTxt}</span>
         </div>
@@ -891,10 +951,10 @@ function renderEmp(){
     return `<div class="row"><span class="row-left">${e.emoji} ${e.nome} <span class="tag ${cCls}">${e.cartao}</span></span><span class="row-right ${c}">${st}</span></div>`;
   }).join(''):'<div class="empty">Nenhum empréstimo</div>';
   const al=document.getElementById('emp-alert');
-  const ativos=S.emp.filter(e=>e.pagas.filter(Boolean).length<e.total);
-  if(al){if(ativos.length){al.innerHTML=`<div class="ib amber" style="margin-top:10px;"><span class="ib-icon">⚠️</span><span>Empréstimos comprometem <strong>${fmt(ativos.reduce((s,e)=>s+e.parcela,0))}/mês</strong></span></div>`;}else if(S.emp.length){al.innerHTML='<div class="ib green" style="margin-top:10px;"><span class="ib-icon">🎉</span><span>Todos os empréstimos foram quitados!</span></div>';}else{al.innerHTML='';}}
-  const alivio=ativos.reduce((s,e)=>s+e.parcela,0);
-  $s('emp-alivio-txt',ativos.length?`Ao quitar todos os empréstimos, você terá mais <strong>${fmt(alivio)}/mês</strong> disponíveis.`:'🎉 Todos os empréstimos estão quitados! Você tem mais saldo livre agora.');
+  const ativos=S.emp.filter(e=>valorEmpMes(e,mesSel)>0);
+  if(al){if(ativos.length){al.innerHTML=`<div class="ib amber" style="margin-top:10px;"><span class="ib-icon">⚠️</span><span>Empréstimos comprometem <strong>${fmt(ativos.reduce((s,e)=>s+valorEmpMes(e,mesSel),0))}/mês</strong> em ${MESES[mesSel]||mesSel}</span></div>`;}else if(S.emp.length){al.innerHTML='<div class="ib green" style="margin-top:10px;"><span class="ib-icon">🎉</span><span>Nenhum empréstimo ativo em '+( MESES[mesSel]||mesSel)+'!</span></div>';}else{al.innerHTML='';}}
+  const alivioTodos=S.emp.filter(e=>e.pagas.filter(Boolean).length<e.total).reduce((s,e)=>s+e.parcela,0);
+  $s('emp-alivio-txt',alivioTodos?`Ao quitar todos os empréstimos, você terá mais <strong>${fmt(alivioTodos)}/mês</strong> disponíveis.`:'🎉 Todos os empréstimos estão quitados! Você tem mais saldo livre agora.');
 }
 
 window.toggleP=(id,i)=>{const e=S.emp.find(x=>x.id===id);if(!e)return;e.pagas[i]=!e.pagas[i];scheduleSave();renderEmp();toast(e.pagas[i]?`✅ Parcela ${i+1} paga!`:`↩️ Parcela ${i+1} desmarcada`);};
@@ -910,12 +970,13 @@ function totalAbertoCartao(lista){
 
 function updateAll(){
   const fW=totalAbertoCartao(S.parW),fY=totalAbertoCartao(S.parY),fL=totalAbertoCartao(S.parL);
+  const fEmp=S.emp.reduce((s,e)=>s+valorEmpMes(e,S.mesSel),0);
   const tv=S.desp.reduce((s,d)=>s+d.v,0),t05=S.c05.reduce((s,c)=>s+c.v,0),t20=S.c20.reduce((s,c)=>s+c.v,0);
-  const fix=t05+t20,tot=fix+fW+fY+fL+tv,sal=S.renda-tot;
+  const fix=t05+t20,tot=fix+fW+fY+fL+fEmp+tv,sal=S.renda-tot;
   const pW=Math.min(100,Math.round(fW/S.limW*100)),pY=Math.min(100,Math.round(fY/S.limY*100));
   const pL=Math.min(100,Math.round(fL/S.limL*100)),pR=Math.min(100,Math.round(tot/S.renda*100));
   $s('h-renda',fmt(S.renda));$s('h-fixas',fmt(fix));$s('h-saldo',fmt(sal),sal>=0?'var(--green)':'var(--red)');$s('h-faturas',fmt(fW+fY+fL));
-  $s('d05',fmt(t05));$s('d20',fmt(t20));$s('dwel',fmt(fW));$s('dyvo',fmt(fY));$s('dlua',fmt(fL));$s('dvar',fmt(tv));$s('dtot',fmt(tot));
+  $s('d05',fmt(t05));$s('d20',fmt(t20));$s('dwel',fmt(fW));$s('dyvo',fmt(fY));$s('dlua',fmt(fL));$s('demp',fmt(fEmp));$s('dvar',fmt(tv));$s('dtot',fmt(tot));
   bar('pr','br',pR);bar('pw','bw',pW);bar('py','by',pY);bar('pl','bl',pL);
   const vel=document.getElementById('venc');
   if(vel){const its=[...S.c05.map(c=>({dia:'05',d:c.d,v:c.v,cls:'red'})),...S.c20.map(c=>({dia:'20',d:c.d,v:c.v,cls:'amber'})),{dia:'20',d:'💳 Fatura Wellington',v:fW,cls:'blue'},{dia:'20',d:'💳 Fatura Yvoneide',v:fY,cls:'blue'},{dia:'20',d:'💳 Fatura Luana',v:fL,cls:'blue'}];vel.innerHTML=its.map(x=>`<div class="row"><span class="row-left"><span class="tag ${x.cls==='red'?'tr':x.cls==='amber'?'ta':'tb'}" style="margin-right:4px;">Dia ${x.dia}</span>${x.d}</span><span class="row-right ${x.cls}">${fmt(x.v)}</span></div>`).join('');}
