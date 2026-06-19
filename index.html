@@ -157,6 +157,7 @@ body::after{content:'';position:fixed;bottom:-200px;left:-100px;width:500px;heig
 .tp{background:var(--purple-glow);color:var(--purple);}
 .tc{background:var(--cyan-glow);color:var(--cyan);}
 .tgray{background:var(--surface3);color:var(--text-3);}
+.tp{background:var(--purple-glow);color:var(--purple);}
 
 .pbar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-top:6px;}
 .pfill{height:100%;border-radius:3px;transition:width .5s ease;}
@@ -188,6 +189,7 @@ select option{background:#1e1e35;}
 .btn-sm{padding:7px 14px;font-size:12px;}
 .btn-ghost{background:var(--surface2);border:1px solid var(--border-md);color:var(--text-2);}
 .btn-ghost:hover{background:var(--surface3);color:var(--text);}
+.btn-ghost.active{background:var(--grad-main);color:#fff;border-color:transparent;box-shadow:0 4px 15px var(--purple-glow);}
 .btn-green{background:var(--grad-green);color:#fff;}
 .btn-danger{background:var(--red-light);color:var(--red);border:1px solid rgba(244,63,94,0.3);}
 .btn-dx{background:transparent;border:1px solid rgba(244,63,94,0.4);color:var(--red);padding:5px 9px;border-radius:var(--radius-xs);font-size:11px;cursor:pointer;font-weight:600;}
@@ -478,10 +480,19 @@ select option{background:#1e1e35;}
     <div class="card-title">📦 Compra parcelada</div>
     <div class="fr">
       <div class="fg"><label class="fl">💳 Cartão</label><select id="pc"><option value="w">🔵 Wellington</option><option value="y">🟠 Yvoneide</option><option value="l">🟢 Luana</option></select></div>
-      <div class="fg" style="max-width:110px;"><label class="fl">📦 Parcelas</label><input type="number" id="pn" value="2" min="2" max="48" oninput="calcP()"></div>
+      <div class="fg"><label class="fl">📅 Data da compra</label><input type="date" id="pdata"></div>
     </div>
     <div class="fg"><label class="fl">📝 Produto</label><input type="text" id="pdesc" placeholder="Ex: Geladeira, Tênis..."></div>
     <div class="fg"><label class="fl">💵 Valor total (R$)</label><input type="number" id="pval" placeholder="0,00" inputmode="decimal" oninput="calcP()"></div>
+    <div class="fg">
+      <label class="fl">🔄 Tipo de compra</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="pmodo-parc" style="flex:1;" onclick="setModoCompra('parc')">📦 Parcelada</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="pmodo-perm" style="flex:1;" onclick="setModoCompra('perm')">🔄 Permanente</button>
+      </div>
+    </div>
+    <div class="fg" id="pn-wrap" style="max-width:110px;"><label class="fl">📦 Parcelas</label><input type="number" id="pn" value="2" min="2" max="48" oninput="calcP()"></div>
+    <div id="pperm-info" style="display:none;margin-bottom:12px;"><div class="ib purple"><span class="ib-icon">🔄</span><span>Esta compra entrará na fatura <strong>todo mês automaticamente</strong>, até você removê-la.</span></div></div>
     <div id="pprev" style="min-height:20px;margin-bottom:12px;"></div>
     <button class="btn btn-main btn-block" onclick="lancarP()">➕ Adicionar ao cartão</button>
   </div>
@@ -672,6 +683,8 @@ async function loadFromFirebase(){
   document.getElementById('mes-sel').value=S.mesSel;
   document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;
   document.getElementById('ld').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pdata').value=new Date().toISOString().split('T')[0];
+  window.setModoCompra('parc');
   updateAll();
 }
 
@@ -696,8 +709,12 @@ window.mudarMes=()=>{S.mesSel=document.getElementById('mes-sel').value;document.
 
 // ── PARCELAS CARTÃO ──
 function migrarParcela(p){
+  if(p.pagas || p.permanente) return p; // já no formato novo (parcelada ou permanente)
+  if(p.p==='Permanente'){
+    // compra antiga marcada como Permanente no formato {d,p,v}
+    return {d:p.d, v:p.v, permanente:true, id:'pc'+Date.now()+Math.random().toString(36).slice(2,7)};
+  }
   // compatibilidade com formato antigo {d,p,v} -> novo formato com grade de pagamento
-  if(p.pagas) return p; // já no formato novo
   let total=1, atual=1;
   if(p.p && p.p.includes('/')){
     const partes=p.p.split('/');
@@ -709,7 +726,18 @@ function migrarParcela(p){
   return {d:p.d, v:p.v, total, pagas, id:'pc'+Date.now()+Math.random().toString(36).slice(2,7)};
 }
 
+// Valor que entra na fatura DESTE mês: para permanente é sempre o valor cheio;
+// para parcelada é o valor da parcela (só entra se ainda houver parcela em aberto)
+function valorFaturaMes(p){
+  if(p.permanente) return p.v;
+  const pg=p.pagas?p.pagas.filter(Boolean).length:0;
+  const quitado=pg>=(p.total||1);
+  return quitado?0:p.v;
+}
+
+// Mantido para referência de "total restante" exibido na própria parcela (não usado mais no total da fatura)
 function valorAbertoParcela(p){
+  if(p.permanente) return p.v;
   const pg=p.pagas?p.pagas.filter(Boolean).length:0;
   const restantes=(p.total||1)-pg;
   return p.v*restantes;
@@ -721,6 +749,18 @@ function renderParcelas(lista,id){
   for(let i=0;i<lista.length;i++) lista[i]=migrarParcela(lista[i]);
   if(!lista.length){el.innerHTML='<div class="empty">Nenhuma parcela ativa</div>';return;}
   el.innerHTML=lista.map((p,i)=>{
+    if(p.permanente){
+      return `<div class="parcela-compra">
+        <div class="row" style="border-bottom:none;padding-bottom:6px;">
+          <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag tp">🔄 Permanente</span></span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span style="font-weight:700;font-size:13px;">${fmt(p.v)}<span style="font-size:10px;color:var(--text-3);font-weight:500;">/mês</span></span>
+            <button class="btn-dx" onclick="remP('${id}',${i})" title="Remover">✕</button>
+          </div>
+        </div>
+        ${p.dataCompra?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">📅 Desde ${p.dataCompra} · cobrança automática todo mês</div>`:''}
+      </div>`;
+    }
     const pg=p.pagas.filter(Boolean).length;
     const restantes=p.total-pg;
     const quitado=pg===p.total;
@@ -740,6 +780,7 @@ function renderParcelas(lista,id){
         </div>
       </div>
       ${p.total>1?`<div class="pg-mini">${btns}</div>`:''}
+      ${p.dataCompra?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">📅 Comprado em ${p.dataCompra}</div>`:''}
       ${quitado?'':`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">Em aberto: <strong style="color:var(--amber);">${fmt(valorAbertoParcela(p))}</strong> · ${restantes} parcela${restantes>1?'s':''} restante${restantes>1?'s':''}</div>`}
     </div>`;
   }).join('');
@@ -749,12 +790,19 @@ window.toggleParcelaCompra=(id,i,k)=>{
   const m={'pw-list':'parW','py-list':'parY','pl-list':'parL'};
   const lista=S[m[id]];
   const p=lista[i];
+  if(p.permanente)return; // compra permanente não tem grade de pagamento
   p.pagas[k]=!p.pagas[k];
   scheduleSave();updateAll();
   toast(p.pagas[k]?`✅ Parcela ${k+1} de "${p.d}" paga!`:`↩️ Parcela ${k+1} desmarcada`);
 };
 
-window.remP=(id,i)=>{const m={'pw-list':'parW','py-list':'parY','pl-list':'parL'};S[m[id]].splice(i,1);scheduleSave();updateAll();};
+window.remP=(id,i)=>{
+  const m={'pw-list':'parW','py-list':'parY','pl-list':'parL'};
+  const lista=S[m[id]];
+  const p=lista[i];
+  if(p&&p.permanente&&!confirm(`Remover "${p.d}" (compra permanente)? Ela deixará de entrar na fatura a partir de agora.`))return;
+  lista.splice(i,1);scheduleSave();updateAll();
+};
 
 // ── CONTAS FIXAS ──
 function renderContas(g){
@@ -856,7 +904,7 @@ window.removerEmp=id=>{if(!confirm('Remover este empréstimo?'))return;S.emp=S.e
 function totalAbertoCartao(lista){
   return lista.reduce((s,p)=>{
     const pm=migrarParcela(p);
-    return s+valorAbertoParcela(pm);
+    return s+valorFaturaMes(pm);
   },0);
 }
 
@@ -888,8 +936,43 @@ window.simular=()=>{const c=document.getElementById('sc').value,v=parseFloat(doc
 
 // ── LANÇAR ──
 window.lancar=()=>{const data=document.getElementById('ld').value,desc=document.getElementById('ldesc').value.trim(),val=parseFloat(document.getElementById('lval').value)||0,cat=document.getElementById('lcat').value,forma=document.getElementById('lf').value;if(!desc||!val){toast('⚠️ Preencha descrição e valor');return;}const dt=data?data.split('-').reverse().join('/'):'Hoje';const novaCompra={d:desc,v:val,total:1,pagas:[false],id:'pc'+Date.now()};if(forma==='w')S.parW.push(novaCompra);else if(forma==='y')S.parY.push(novaCompra);else if(forma==='l')S.parL.push(novaCompra);else S.desp.push({dt,d:desc,v:val,cat});document.getElementById('ldesc').value='';document.getElementById('lval').value='';scheduleSave();updateAll();window.showTabBtn('despesas');toast('✅ Registrado e salvo!');};
-window.calcP=()=>{const v=parseFloat(document.getElementById('pval').value)||0,n=parseInt(document.getElementById('pn').value)||1;document.getElementById('pprev').innerHTML=v&&n>1?`<div class="ib cyan"><span class="ib-icon">📦</span><span>${n}x de <strong>${fmt(v/n)}</strong> · Total: <strong>${fmt(v)}</strong></span></div>`:'';};
-window.lancarP=()=>{const c=document.getElementById('pc').value,desc=document.getElementById('pdesc').value.trim(),val=parseFloat(document.getElementById('pval').value)||0,num=parseInt(document.getElementById('pn').value)||1;if(!desc||!val){toast('⚠️ Preencha produto e valor');return;}const entry={d:desc,v:val/num,total:num,pagas:Array(num).fill(false),id:'pc'+Date.now()};if(c==='w')S.parW.push(entry);else if(c==='y')S.parY.push(entry);else S.parL.push(entry);document.getElementById('pdesc').value='';document.getElementById('pval').value='';document.getElementById('pprev').innerHTML='';scheduleSave();updateAll();toast('✅ Adicionado ao cartão!');};
+let modoCompraAtual='parc';
+window.setModoCompra=(modo)=>{
+  modoCompraAtual=modo;
+  document.getElementById('pmodo-parc').classList.toggle('active',modo==='parc');
+  document.getElementById('pmodo-perm').classList.toggle('active',modo==='perm');
+  document.getElementById('pn-wrap').style.display=modo==='perm'?'none':'block';
+  document.getElementById('pperm-info').style.display=modo==='perm'?'block':'none';
+  window.calcP();
+};
+window.calcP=()=>{
+  const v=parseFloat(document.getElementById('pval').value)||0;
+  const prev=document.getElementById('pprev');
+  if(modoCompraAtual==='perm'){
+    prev.innerHTML=v?`<div class="ib cyan"><span class="ib-icon">🔄</span><span>Permanente · <strong>${fmt(v)}</strong>/mês na fatura</span></div>`:'';
+    return;
+  }
+  const n=parseInt(document.getElementById('pn').value)||1;
+  prev.innerHTML=v&&n>1?`<div class="ib cyan"><span class="ib-icon">📦</span><span>${n}x de <strong>${fmt(v/n)}</strong> · Total: <strong>${fmt(v)}</strong></span></div>`:'';
+};
+window.lancarP=()=>{
+  const c=document.getElementById('pc').value,desc=document.getElementById('pdesc').value.trim(),val=parseFloat(document.getElementById('pval').value)||0;
+  const dataInput=document.getElementById('pdata').value;
+  const dataCompra=dataInput?dataInput.split('-').reverse().join('/'):new Date().toLocaleDateString('pt-BR');
+  if(!desc||!val){toast('⚠️ Preencha produto e valor');return;}
+  const modoUsado=modoCompraAtual;
+  let entry;
+  if(modoUsado==='perm'){
+    entry={d:desc,v:val,permanente:true,dataCompra,id:'pc'+Date.now()};
+  }else{
+    const num=parseInt(document.getElementById('pn').value)||1;
+    entry={d:desc,v:val/num,total:num,pagas:Array(num).fill(false),dataCompra,id:'pc'+Date.now()};
+  }
+  if(c==='w')S.parW.push(entry);else if(c==='y')S.parY.push(entry);else S.parL.push(entry);
+  document.getElementById('pdesc').value='';document.getElementById('pval').value='';document.getElementById('pdata').value='';document.getElementById('pprev').innerHTML='';
+  window.setModoCompra('parc');
+  scheduleSave();updateAll();toast(modoUsado==='perm'?'✅ Compra permanente adicionada!':'✅ Adicionado ao cartão!');
+};
 window.remD=i=>{S.desp.splice(i,1);scheduleSave();updateAll();};
 window.limparMes=()=>{if(!confirm('Apagar lançamentos variáveis e parcelas? Contas fixas mantidas.'))return;S.desp=[];S.parW=[];S.parY=JSON.parse(JSON.stringify(DEF.parY));S.parL=[];scheduleSave();updateAll();toast('🗑️ Mês limpo!');};
 
