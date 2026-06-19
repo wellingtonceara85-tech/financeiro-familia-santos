@@ -443,7 +443,8 @@ select option{background:#1e1e35;}
     <div class="pbar" style="margin-bottom:14px;"><div class="pfill" id="pgw" style="width:0%"></div></div>
     <div class="card-title" style="font-size:13px;margin-bottom:8px;">📦 Parcelas em aberto</div>
     <div id="pw-list"><div class="empty">Nenhuma parcela</div></div>
-    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:12px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
+    <button id="btn-fatura-w" class="btn btn-green btn-block btn-sm" style="margin-top:12px;" onclick="marcarFaturaPaga('w')">✅ Marcar Fatura de <span id="mes-curto-w"></span> Paga</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
   </div>
   <div class="card">
     <div class="cv" style="background:linear-gradient(135deg,#78350f,#d97706,#fbbf24);">
@@ -457,7 +458,8 @@ select option{background:#1e1e35;}
     <div class="pbar" style="margin-bottom:14px;"><div class="pfill" id="pgy" style="width:0%"></div></div>
     <div class="card-title" style="font-size:13px;margin-bottom:8px;">📦 Parcelas em aberto</div>
     <div id="py-list"></div>
-    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:12px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
+    <button id="btn-fatura-y" class="btn btn-green btn-block btn-sm" style="margin-top:12px;" onclick="marcarFaturaPaga('y')">✅ Marcar Fatura de <span id="mes-curto-y"></span> Paga</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
   </div>
   <div class="card">
     <div class="cv" style="background:linear-gradient(135deg,#064e3b,#059669,#34d399);">
@@ -471,7 +473,8 @@ select option{background:#1e1e35;}
     <div class="pbar" style="margin-bottom:14px;"><div class="pfill" id="pgl" style="width:0%"></div></div>
     <div class="card-title" style="font-size:13px;margin-bottom:8px;">📦 Parcelas em aberto</div>
     <div id="pl-list"><div class="empty">Nenhuma parcela</div></div>
-    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:12px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
+    <button id="btn-fatura-l" class="btn btn-green btn-block btn-sm" style="margin-top:12px;" onclick="marcarFaturaPaga('l')">✅ Marcar Fatura de <span id="mes-curto-l"></span> Paga</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px;" onclick="showTabBtn('lancamento')">➕ Lançar compra</button>
   </div>
   <div class="card card-glow">
     <div class="card-title">🔮 Simular nova compra</div>
@@ -482,6 +485,10 @@ select option{background:#1e1e35;}
     </div>
     <button class="btn btn-main" onclick="simular()" style="margin-bottom:10px;">🔮 Simular</button>
     <div id="sr"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🗂️ Faturas Pagas · Histórico</div>
+    <div id="faturas-pagas-list"><div class="empty">Nenhuma fatura marcada como paga ainda</div></div>
   </div>
 </div>
 
@@ -624,6 +631,7 @@ const MESES = {'2026-06':'Junho 2026','2026-07':'Julho 2026','2026-08':'Agosto 2
 const DEF = {
   limW:3000,limY:2000,limL:1500,renda:8500,
   fechW:14,fechY:17,fechL:5,
+  faturasPagas:[], // {id, cartaoKey, mes, valorTotal, itens:[{d,v}], dataPagamento}
   c05:[
     {d:'Dízimo Wellington (3 partes)',v:470},{d:'Oferta',v:20},{d:'Gás',v:60},
     {d:'Internet',v:99.90},{d:'Plano celular Luana',v:29.90},{d:'Plano celular Lívia',v:32.90},
@@ -737,6 +745,7 @@ async function loadFromFirebase(){
   if(!S.fechW)S.fechW=DEF.fechW;
   if(!S.fechY)S.fechY=DEF.fechY;
   if(!S.fechL)S.fechL=DEF.fechL;
+  if(!S.faturasPagas)S.faturasPagas=[];
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('mes-sel').value=S.mesSel;
   document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;
@@ -810,8 +819,15 @@ function diffMeses(mesSel,dataCompra){
 }
 
 // Valor que esta parcela contribui para a fatura do mêsSel, considerando o dia de fechamento do cartão (opcional)
+// Regra: cada parcela "nasce" em um mês específico (calculado pela data de compra + fechamento + nº da parcela).
+// Se o mêsSel for ANTES do mês de nascimento da parcela, ela ainda não entra (compra futura/parcela futura).
+// Se o mêsSel for IGUAL ou DEPOIS do mês de nascimento e ela ainda não foi paga, ela conta nesse mês
+// (trata como fatura em aberto/atrasada) — só some quando for marcada como paga via toggle ou "Fatura Paga".
 function valorFaturaMesParaMes(p, mesSel, diaFechamento){
-  if(p.permanente) return p.v; // sempre entra
+  if(p.permanente){
+    if(p.pagasMeses && p.pagasMeses.includes(mesSel)) return 0; // já marcado como pago nesse mês
+    return p.v;
+  }
   const pg=p.pagas?p.pagas.filter(Boolean).length:0;
   const total=p.total||1;
   const quitado=pg>=total;
@@ -820,9 +836,8 @@ function valorFaturaMesParaMes(p, mesSel, diaFechamento){
   if(!p.dataCompra) return p.v;
   const anoMesFatura=mesFaturaDaCompra(p.dataCompra, diaFechamento);
   const diff=diffMesesAnoMes(mesSel, anoMesFatura);
-  // diff=0 → mês da 1ª fatura é a parcela 1; diff=1 → parcela 2 etc.
-  const parcelaDesseMes=diff+1; // qual número de parcela cai nesse mês
-  if(parcelaDesseMes<1||parcelaDesseMes>total) return 0; // antes da compra ou já terminou
+  if(diff<0) return 0; // mês selecionado é ANTES da compra nascer: ainda não entra
+  // próxima parcela não paga é a que conta (seja no mês exato, seja atrasada em meses seguintes)
   return p.v;
 }
 
@@ -894,7 +909,13 @@ function renderParcelas(lista,id,diaFechamento){
     const restantes=p.total-pg;
     const quitado=pg===p.total;
     const valorMes=valorFaturaMesParaMes(p,mesSel,diaFechamento);
-    const foraDoMes=!quitado&&p.dataCompra&&valorMes===0;
+    const aindaNaoComecou=!quitado&&p.dataCompra&&valorMes===0;
+    // atrasada: já deveria ter sido paga (mês de nascimento é anterior ao mês selecionado) e ainda não foi
+    let atrasada=false;
+    if(!quitado&&!aindaNaoComecou&&p.dataCompra){
+      const anoMesFatura=mesFaturaDaCompra(p.dataCompra,diaFechamento);
+      atrasada=diffMesesAnoMes(mesSel,anoMesFatura)>0;
+    }
     const stTag=quitado?'tg':pg>0?'ta':'tgray';
     const stTxt=quitado?'✅ Quitada':`${pg}/${p.total} pagas`;
     const btns=p.pagas.map((ok,k)=>{
@@ -902,9 +923,9 @@ function renderParcelas(lista,id,diaFechamento){
       const cls=ok?'pago':isAtual?'atual':'pendente';
       return `<button class="pb pb-mini ${cls}" onclick="toggleParcelaCompra('${id}',${i},${k})" title="Parcela ${k+1}"><span>${ok?'✓':(k+1)}</span></button>`;
     }).join('');
-    return `<div class="parcela-compra" style="${foraDoMes?'opacity:0.45;':''}">
+    return `<div class="parcela-compra" style="${aindaNaoComecou?'opacity:0.45;':''}">
       <div class="row" style="border-bottom:none;padding-bottom:6px;">
-        <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag ${stTag}">${stTxt}</span>${foraDoMes?` <span class="tag tgray">Fora de ${MESES[mesSel]||mesSel}</span>`:''}</span>
+        <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag ${stTag}">${stTxt}</span>${aindaNaoComecou?` <span class="tag tgray">Ainda não chegou</span>`:''}${atrasada?` <span class="tag tr">⏰ Atrasada</span>`:''}</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <span style="font-weight:700;font-size:13px;">${fmt(p.v)}<span style="font-size:10px;color:var(--text-3);font-weight:500;">/parc.</span></span>
           <button class="btn-dx" onclick="abrirEditarParcela('${id}',${i})" title="Editar" style="background:var(--surface3);color:var(--text-2);">✏️</button>
@@ -1127,6 +1148,86 @@ function totalAbertoCartao(lista, diaFechamento){
   },0);
 }
 
+// ── FATURA PAGA (FECHAMENTO MENSAL) ──
+const CARTAO_INFO={w:{nome:'Cartão Wellington',lista:'parW',fech:'fechW'},y:{nome:'Cartão Yvoneide',lista:'parY',fech:'fechY'},l:{nome:'Cartão Luana',lista:'parL',fech:'fechL'}};
+window.marcarFaturaPaga=(cartaoKey)=>{
+  const info=CARTAO_INFO[cartaoKey];
+  const lista=S[info.lista];
+  const diaFechamento=S[info.fech];
+  const mesSel=S.mesSel;
+  const idFatura=`${cartaoKey}-${mesSel}`;
+  if(S.faturasPagas.some(f=>f.id===idFatura)){toast('⚠️ Essa fatura já foi marcada como paga');return;}
+  const itens=[];
+  let valorTotal=0;
+  for(let i=0;i<lista.length;i++){
+    lista[i]=migrarParcela(lista[i]);
+    const p=lista[i];
+    const valorMes=valorFaturaMesParaMes(p,mesSel,diaFechamento);
+    if(valorMes<=0)continue;
+    itens.push({d:p.d,v:valorMes,permanente:!!p.permanente});
+    valorTotal+=valorMes;
+    if(p.permanente){
+      if(!p.pagasMeses)p.pagasMeses=[];
+      if(!p.pagasMeses.includes(mesSel))p.pagasMeses.push(mesSel);
+    }else{
+      // marca a próxima parcela não paga (é sempre essa que conta na fatura do mês, seja em dia ou atrasada)
+      const idx=p.pagas.findIndex(x=>!x);
+      if(idx>=0)p.pagas[idx]=true;
+    }
+  }
+  if(!itens.length){toast('ℹ️ Não há cobranças nessa fatura para marcar como paga');return;}
+  S.faturasPagas.push({id:idFatura,cartaoKey,cartaoNome:info.nome,mes:mesSel,valorTotal,itens,dataPagamento:new Date().toLocaleDateString('pt-BR')});
+  scheduleSave();updateAll();
+  toast(`✅ Fatura de ${MESES[mesSel]||mesSel} (${info.nome}) marcada como paga!`);
+};
+window.desmarcarFaturaPaga=(idFatura)=>{
+  const fatura=S.faturasPagas.find(f=>f.id===idFatura);
+  if(!fatura)return;
+  if(!confirm(`Desfazer o pagamento da fatura de ${MESES[fatura.mes]||fatura.mes} (${fatura.cartaoNome})? Isso vai desmarcar as parcelas/permanentes que foram pagas por ela.`))return;
+  const info=CARTAO_INFO[fatura.cartaoKey];
+  const lista=S[info.lista];
+  // desmarca a ÚLTIMA parcela paga de cada item que fez parte dessa fatura (reverte a marcação mais recente)
+  for(let i=0;i<lista.length;i++){
+    const p=lista[i];
+    if(p.permanente){
+      if(p.pagasMeses)p.pagasMeses=p.pagasMeses.filter(m=>m!==fatura.mes);
+    }else if(fatura.itens.some(it=>it.d===p.d&&!it.permanente)){
+      // encontra a última parcela marcada como paga e desmarca
+      let lastPaidIdx=-1;
+      for(let k=0;k<p.pagas.length;k++){if(p.pagas[k])lastPaidIdx=k;}
+      if(lastPaidIdx>=0)p.pagas[lastPaidIdx]=false;
+    }
+  }
+  S.faturasPagas=S.faturasPagas.filter(f=>f.id!==idFatura);
+  scheduleSave();updateAll();
+  toast('↩️ Pagamento da fatura desfeito');
+};
+function renderFaturasPagas(){
+  const el=document.getElementById('faturas-pagas-list');if(!el)return;
+  const lista=[...S.faturasPagas].sort((a,b)=>b.mes.localeCompare(a.mes));
+  if(!lista.length){el.innerHTML='<div class="empty">Nenhuma fatura marcada como paga ainda</div>';return;}
+  el.innerHTML=lista.map(f=>{
+    const cCls=f.cartaoKey==='w'?'tb':f.cartaoKey==='y'?'ta':'tg';
+    return `<div class="parcela-compra">
+      <div class="row" style="border-bottom:none;padding-bottom:6px;cursor:pointer;" onclick="toggleDetalheFatura('${f.id}')">
+        <span class="row-left" style="font-size:13px;"><span class="tag ${cCls}">${f.cartaoNome}</span> ${MESES[f.mes]||f.mes}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-weight:700;font-size:14px;color:var(--green);">${fmt(f.valorTotal)}</span>
+          <button class="btn-dx" onclick="event.stopPropagation();desmarcarFaturaPaga('${f.id}')" title="Desfazer">✕</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);">✅ Paga em ${f.dataPagamento} · ${f.itens.length} ite${f.itens.length>1?'ns':'m'}</div>
+      <div id="detalhe-${f.id}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        ${f.itens.map(it=>`<div class="row" style="padding:4px 0;"><span class="row-left" style="font-size:12px;">${it.d}${it.permanente?' <span class="tag tp">🔄</span>':''}</span><span class="row-right" style="font-size:12px;">${fmt(it.v)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+window.toggleDetalheFatura=(id)=>{
+  const el=document.getElementById('detalhe-'+id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+};
+
 // ── GRÁFICO DE FATURAS ──
 // Gera lista de meses 'YYYY-MM' ao redor do mesSel: 3 antes, o atual, e 2 depois (6 no total)
 function mesesParaGrafico(mesSel){
@@ -1185,13 +1286,19 @@ function updateAll(){
   bar('pr','br',pR);bar('pw','bw',pW);bar('py','by',pY);bar('pl','bl',pL);
   const vel=document.getElementById('venc');
   if(vel){const its=[...S.c05.map(c=>({dia:'05',d:c.d,v:c.v,cls:'red'})),...S.c20.map(c=>({dia:'20',d:c.d,v:c.v,cls:'amber'})),{dia:'20',d:'💳 Fatura Wellington',v:fW,cls:'blue'},{dia:'20',d:'💳 Fatura Yvoneide',v:fY,cls:'blue'},{dia:'20',d:'💳 Fatura Luana',v:fL,cls:'blue'}];vel.innerHTML=its.map(x=>`<div class="row"><span class="row-left"><span class="tag ${x.cls==='red'?'tr':x.cls==='amber'?'ta':'tb'}" style="margin-right:4px;">Dia ${x.dia}</span>${x.d}</span><span class="row-right ${x.cls}">${fmt(x.v)}</span></div>`).join('');}
-  [{k:'w',lim:S.limW,f:fW,pct:pW,cv:'cv-dw',cs:'cv-sw',cp:'cv-pw',fw:'fw',dw:'dw',pg:'pgw',pl:'pw-list',par:S.parW,fech:S.fechW},{k:'y',lim:S.limY,f:fY,pct:pY,cv:'cv-dy',cs:'cv-sy',cp:'cv-py',fw:'fy',dw:'dy',pg:'pgy',pl:'py-list',par:S.parY,fech:S.fechY},{k:'l',lim:S.limL,f:fL,pct:pL,cv:'cv-dl',cs:'cv-sl',cp:'cv-pl',fw:'fl',dw:'dl',pg:'pgl',pl:'pl-list',par:S.parL,fech:S.fechL}].forEach(c=>{$s(c.cv,fmt(c.lim-c.f));const sub=document.getElementById(c.cs);if(sub)sub.textContent='disponível de '+fmt(c.lim);const chip=document.getElementById(c.cp);if(chip)chip.textContent=c.pct+'%';$s(c.fw,fmt(c.f));$s(c.dw,fmt(c.lim-c.f));const bg=document.getElementById(c.pg);if(bg){bg.style.width=c.pct+'%';bg.style.background=cor(c.pct);}renderParcelas(c.par,c.pl,c.fech);});
+  [{k:'w',lim:S.limW,f:fW,pct:pW,cv:'cv-dw',cs:'cv-sw',cp:'cv-pw',fw:'fw',dw:'dw',pg:'pgw',pl:'pw-list',par:S.parW,fech:S.fechW},{k:'y',lim:S.limY,f:fY,pct:pY,cv:'cv-dy',cs:'cv-sy',cp:'cv-py',fw:'fy',dw:'dy',pg:'pgy',pl:'py-list',par:S.parY,fech:S.fechY},{k:'l',lim:S.limL,f:fL,pct:pL,cv:'cv-dl',cs:'cv-sl',cp:'cv-pl',fw:'fl',dw:'dl',pg:'pgl',pl:'pl-list',par:S.parL,fech:S.fechL}].forEach(c=>{$s(c.cv,fmt(c.lim-c.f));const sub=document.getElementById(c.cs);if(sub)sub.textContent='disponível de '+fmt(c.lim);const chip=document.getElementById(c.cp);if(chip)chip.textContent=c.pct+'%';$s(c.fw,fmt(c.f));$s(c.dw,fmt(c.lim-c.f));const bg=document.getElementById(c.pg);if(bg){bg.style.width=c.pct+'%';bg.style.background=cor(c.pct);}renderParcelas(c.par,c.pl,c.fech);
+    const mc=document.getElementById('mes-curto-'+c.k);if(mc)mc.textContent=nomeMesCurto(S.mesSel);
+    const idF=`${c.k}-${S.mesSel}`,jaPaga=S.faturasPagas.some(f=>f.id===idF);
+    const btnPaga=document.getElementById('btn-fatura-'+c.k);
+    if(btnPaga){btnPaga.disabled=jaPaga;btnPaga.innerHTML=jaPaga?`✅ Fatura de ${nomeMesCurto(S.mesSel)} já paga`:`✅ Marcar Fatura de ${nomeMesCurto(S.mesSel)} Paga`;btnPaga.style.opacity=jaPaga?'0.6':'1';btnPaga.style.cursor=jaPaga?'default':'pointer';}
+  });
   renderContas('05');renderContas('20');
   const lv=document.getElementById('lvar');
   if(lv)lv.innerHTML=S.desp.length?S.desp.map((d,i)=>`<div class="row"><span class="row-left" style="font-size:12px;">${d.dt} · ${d.d} <span class="tag tgray">${d.cat}</span></span><div style="display:flex;gap:6px;align-items:center;"><span style="font-weight:700;">${fmt(d.v)}</span><button class="btn-dx" onclick="remD(${i})">✕</button></div></div>`).join(''):'<div class="empty">Nenhum lançamento. Use ➕ Lançar.</div>';
   $s('tvar',fmt(tv));
   renderEmp();
   renderGraficoFaturas();
+  renderFaturasPagas();
 }
 
 // ── TABS ──
