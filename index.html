@@ -1173,7 +1173,7 @@ function renderGraficoFaturas(){
   </div>`;
 }
 
-
+function updateAll(){
   const fW=totalAbertoCartao(S.parW,S.fechW),fY=totalAbertoCartao(S.parY,S.fechY),fL=totalAbertoCartao(S.parL,S.fechL);
   const fEmp=S.emp.reduce((s,e)=>s+valorEmpMes(e,S.mesSel),0);
   const tv=S.desp.reduce((s,d)=>s+d.v,0),t05=S.c05.reduce((s,c)=>s+c.v,0),t20=S.c20.reduce((s,c)=>s+c.v,0);
