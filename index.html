@@ -318,6 +318,26 @@ select option{background:#1e1e35;}
   </div>
 </div>
 
+<!-- ── MODAL EDITAR PARCELA/COMPRA ── -->
+<div class="modal-overlay" id="modal-editar-parcela">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="fecharModalEditarParcela()">✕</button>
+    <div class="modal-title">✏️ Editar Compra</div>
+    <div class="fg"><label class="fl">📝 Descrição</label><input type="text" id="ep-desc"></div>
+    <div class="fg"><label class="fl">📅 Data da compra</label><input type="date" id="ep-data"></div>
+    <div id="ep-campos-parcela">
+      <div class="fr">
+        <div class="fg"><label class="fl">💵 Valor da parcela (R$)</label><input type="number" id="ep-valor" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">📦 Total parcelas</label><input type="number" id="ep-total" min="1"></div>
+      </div>
+    </div>
+    <div id="ep-campos-permanente" style="display:none;">
+      <div class="fg"><label class="fl">💵 Valor mensal (R$)</label><input type="number" id="ep-valor-perm" inputmode="decimal"></div>
+    </div>
+    <button class="btn btn-main btn-block" onclick="salvarEdicaoParcela()" style="margin-top:8px;">✅ Salvar alterações</button>
+  </div>
+</div>
+
 <div id="sync-status" class="hidden"></div>
 <div id="toast"></div>
 
@@ -402,6 +422,15 @@ select option{background:#1e1e35;}
 
 <!-- CARTÕES -->
 <div id="tab-cartoes" class="section">
+  <div class="card">
+    <div class="card-title">📊 Evolução das Faturas · 6 meses</div>
+    <div id="grafico-faturas"></div>
+    <div style="display:flex;gap:14px;justify-content:center;margin-top:10px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><div style="width:10px;height:10px;border-radius:3px;background:#3b82f6;"></div>Wellington</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><div style="width:10px;height:10px;border-radius:3px;background:#f59e0b;"></div>Yvoneide</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2);"><div style="width:10px;height:10px;border-radius:3px;background:#10b981;"></div>Luana</div>
+    </div>
+  </div>
   <div class="card card-glow">
     <div class="cv" style="background:linear-gradient(135deg,#1e3a8a,#2563eb,#06b6d4);">
       <div class="cv-name">🔵 Wellington · Nubank</div>
@@ -521,10 +550,32 @@ select option{background:#1e1e35;}
 <!-- CONFIG -->
 <div id="tab-config" class="section">
   <div class="card card-glow">
-    <div class="cfg-t">💳 Limites dos cartões</div>
-    <div class="ci"><span class="ci-desc">🔵 Wellington</span><div class="ci-val"><input type="number" id="clw" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveLim('w')">✓</button></div></div>
-    <div class="ci"><span class="ci-desc">🟠 Yvoneide</span><div class="ci-val"><input type="number" id="cly" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveLim('y')">✓</button></div></div>
-    <div class="ci"><span class="ci-desc">🟢 Luana</span><div class="ci-val"><input type="number" id="cll" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveLim('l')">✓</button></div></div>
+    <div class="cfg-t">💳 Cartões · Limite e Fechamento da Fatura</div>
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🔵 Wellington</div>
+      <div class="fr">
+        <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="clw" inputmode="decimal"></div>
+        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfw" min="1" max="31" inputmode="decimal"></div>
+      </div>
+      <button class="btn btn-green btn-sm btn-block" onclick="saveLim('w')" style="margin-top:6px;">✓ Salvar Wellington</button>
+    </div>
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🟠 Yvoneide</div>
+      <div class="fr">
+        <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="cly" inputmode="decimal"></div>
+        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfy" min="1" max="31" inputmode="decimal"></div>
+      </div>
+      <button class="btn btn-green btn-sm btn-block" onclick="saveLim('y')" style="margin-top:6px;">✓ Salvar Yvoneide</button>
+    </div>
+    <div style="padding:10px 0;">
+      <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🟢 Luana</div>
+      <div class="fr">
+        <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="cll" inputmode="decimal"></div>
+        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfl" min="1" max="31" inputmode="decimal"></div>
+      </div>
+      <button class="btn btn-green btn-sm btn-block" onclick="saveLim('l')" style="margin-top:6px;">✓ Salvar Luana</button>
+    </div>
+    <div class="ib purple" style="margin-top:10px;"><span class="ib-icon">💡</span><span>O dia de fechamento define em qual fatura uma compra entra: comprou <strong>depois</strong> do fechamento, vai pra fatura do mês seguinte.</span></div>
   </div>
   <div class="card">
     <div class="cfg-t">💰 Renda mensal</div>
@@ -572,6 +623,7 @@ const MESES = {'2026-06':'Junho 2026','2026-07':'Julho 2026','2026-08':'Agosto 2
 
 const DEF = {
   limW:3000,limY:2000,limL:1500,renda:8500,
+  fechW:14,fechY:17,fechL:5,
   c05:[
     {d:'Dízimo Wellington (3 partes)',v:470},{d:'Oferta',v:20},{d:'Gás',v:60},
     {d:'Internet',v:99.90},{d:'Plano celular Luana',v:29.90},{d:'Plano celular Lívia',v:32.90},
@@ -681,6 +733,10 @@ async function loadFromFirebase(){
     if(snap.exists()){Object.assign(S,snap.data());syncStatus('saved','☁️ Sincronizado!');}
     else{await saveToFirebase();syncStatus('saved','☁️ Dados iniciais salvos!');}
   }catch(e){syncStatus('error','⚠️ Modo offline');console.error(e);}
+  // compatibilidade: dados salvos antes da função de fechamento de fatura não têm esses campos
+  if(!S.fechW)S.fechW=DEF.fechW;
+  if(!S.fechY)S.fechY=DEF.fechY;
+  if(!S.fechL)S.fechL=DEF.fechL;
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('mes-sel').value=S.mesSel;
   document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;
@@ -710,21 +766,42 @@ function bar(lid,bid,pct){
 window.mudarMes=()=>{S.mesSel=document.getElementById('mes-sel').value;document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;scheduleSave();updateAll();};
 
 // ── HELPERS DE MÊS ──
-// Converte 'DD/MM/YYYY' ou 'YYYY-MM' em {ano,mes} (1-based)
+// Converte 'DD/MM/YYYY' ou 'YYYY-MM' em {ano,mes,dia} (1-based; dia=null se não informado)
 function parseDataCompra(d){
   if(!d)return null;
   if(d.includes('/')){
     const p=d.split('/');
-    if(p.length===3)return{ano:parseInt(p[2]),mes:parseInt(p[1])};
-    if(p.length===2)return{ano:parseInt(p[1]),mes:parseInt(p[0])};
+    if(p.length===3)return{ano:parseInt(p[2]),mes:parseInt(p[1]),dia:parseInt(p[0])};
+    if(p.length===2)return{ano:parseInt(p[1]),mes:parseInt(p[0]),dia:null};
   }
   if(d.includes('-')){
     const p=d.split('-');
-    return{ano:parseInt(p[0]),mes:parseInt(p[1])};
+    if(p.length===3)return{ano:parseInt(p[0]),mes:parseInt(p[1]),dia:parseInt(p[2])};
+    return{ano:parseInt(p[0]),mes:parseInt(p[1]),dia:null};
   }
   return null;
 }
-// Quantos meses de diferença: mesSel(YYYY-MM) - dataCompra; positivo = mêsSel é depois
+// Dado a data da compra e o dia de fechamento da fatura do cartão, retorna {ano,mes} da FATURA em que a compra cai.
+// Se a compra foi feita depois do fechamento, ela "empurra" pro mês seguinte.
+// diaFechamento=null (ou 0) → sem fechamento configurado, usa o mês calendário da compra (comportamento antigo)
+function mesFaturaDaCompra(dataCompra, diaFechamento){
+  const dc=parseDataCompra(dataCompra);
+  if(!dc) return null;
+  if(!diaFechamento || !dc.dia) return {ano:dc.ano, mes:dc.mes};
+  let ano=dc.ano, mes=dc.mes;
+  if(dc.dia>diaFechamento){ // comprou depois do fechamento → cai na fatura do mês seguinte
+    mes++;
+    if(mes>12){mes=1;ano++;}
+  }
+  return {ano, mes};
+}
+// Quantos meses de diferença entre mesSel(YYYY-MM) e um {ano,mes}; positivo = mêsSel é depois
+function diffMesesAnoMes(mesSel, anoMes){
+  if(!anoMes)return 0;
+  const ms=mesSel.split('-');
+  return (parseInt(ms[0])-anoMes.ano)*12+(parseInt(ms[1])-anoMes.mes);
+}
+// Mantido por compatibilidade: diferença direta sem considerar fechamento
 function diffMeses(mesSel,dataCompra){
   const dc=parseDataCompra(dataCompra);
   if(!dc)return 0;
@@ -732,8 +809,8 @@ function diffMeses(mesSel,dataCompra){
   return (parseInt(ms[0])-dc.ano)*12+(parseInt(ms[1])-dc.mes);
 }
 
-// Valor que esta parcela contribui para a fatura do mêsSel
-function valorFaturaMesParaMes(p, mesSel){
+// Valor que esta parcela contribui para a fatura do mêsSel, considerando o dia de fechamento do cartão (opcional)
+function valorFaturaMesParaMes(p, mesSel, diaFechamento){
   if(p.permanente) return p.v; // sempre entra
   const pg=p.pagas?p.pagas.filter(Boolean).length:0;
   const total=p.total||1;
@@ -741,14 +818,15 @@ function valorFaturaMesParaMes(p, mesSel){
   if(quitado) return 0;
   // Se não tem data de compra, comportamento antigo: entra se não quitada
   if(!p.dataCompra) return p.v;
-  const diff=diffMeses(mesSel,p.dataCompra);
-  // diff=0 → mês da compra é a parcela 1; diff=1 → parcela 2 etc.
+  const anoMesFatura=mesFaturaDaCompra(p.dataCompra, diaFechamento);
+  const diff=diffMesesAnoMes(mesSel, anoMesFatura);
+  // diff=0 → mês da 1ª fatura é a parcela 1; diff=1 → parcela 2 etc.
   const parcelaDesseMes=diff+1; // qual número de parcela cai nesse mês
   if(parcelaDesseMes<1||parcelaDesseMes>total) return 0; // antes da compra ou já terminou
   return p.v;
 }
 
-// Valor da parcela de empréstimo para o mêsSel
+// Valor da parcela de empréstimo para o mêsSel (empréstimos não usam fechamento de cartão, só mês de início)
 function valorEmpMes(e, mesSel){
   const pg=e.pagas.filter(Boolean).length;
   if(pg>=e.total) return 0; // quitado
@@ -778,10 +856,10 @@ function migrarParcela(p){
   return {d:p.d, v:p.v, total, pagas, id:'pc'+Date.now()+Math.random().toString(36).slice(2,7)};
 }
 
-// Valor que entra na fatura DESTE mês (usa mesSel): para permanente é sempre o valor cheio;
-// para parcelada considera a data da compra e qual parcela cai neste mês
-function valorFaturaMes(p){
-  return valorFaturaMesParaMes(p, S.mesSel);
+// Valor que entra na fatura DESTE mês (usa mesSel), considerando o dia de fechamento do cartão.
+// diaFechamento é opcional; se omitido, usa o mês calendário da compra (comportamento sem fechamento)
+function valorFaturaMes(p, diaFechamento){
+  return valorFaturaMesParaMes(p, S.mesSel, diaFechamento);
 }
 
 // Mantido para referência de "total restante" exibido na própria parcela (não usado mais no total da fatura)
@@ -792,7 +870,7 @@ function valorAbertoParcela(p){
   return p.v*restantes;
 }
 
-function renderParcelas(lista,id){
+function renderParcelas(lista,id,diaFechamento){
   const el=document.getElementById(id);if(!el)return;
   // migra formato antigo automaticamente
   for(let i=0;i<lista.length;i++) lista[i]=migrarParcela(lista[i]);
@@ -805,6 +883,7 @@ function renderParcelas(lista,id){
           <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag tp">🔄 Permanente</span></span>
           <div style="display:flex;gap:6px;align-items:center;">
             <span style="font-weight:700;font-size:13px;">${fmt(p.v)}<span style="font-size:10px;color:var(--text-3);font-weight:500;">/mês</span></span>
+            <button class="btn-dx" onclick="abrirEditarParcela('${id}',${i})" title="Editar" style="background:var(--surface3);color:var(--text-2);">✏️</button>
             <button class="btn-dx" onclick="remP('${id}',${i})" title="Remover">✕</button>
           </div>
         </div>
@@ -814,7 +893,7 @@ function renderParcelas(lista,id){
     const pg=p.pagas.filter(Boolean).length;
     const restantes=p.total-pg;
     const quitado=pg===p.total;
-    const valorMes=valorFaturaMesParaMes(p,mesSel);
+    const valorMes=valorFaturaMesParaMes(p,mesSel,diaFechamento);
     const foraDoMes=!quitado&&p.dataCompra&&valorMes===0;
     const stTag=quitado?'tg':pg>0?'ta':'tgray';
     const stTxt=quitado?'✅ Quitada':`${pg}/${p.total} pagas`;
@@ -828,6 +907,7 @@ function renderParcelas(lista,id){
         <span class="row-left" style="font-size:12px;color:var(--text-2);">${p.d} <span class="tag ${stTag}">${stTxt}</span>${foraDoMes?` <span class="tag tgray">Fora de ${MESES[mesSel]||mesSel}</span>`:''}</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <span style="font-weight:700;font-size:13px;">${fmt(p.v)}<span style="font-size:10px;color:var(--text-3);font-weight:500;">/parc.</span></span>
+          <button class="btn-dx" onclick="abrirEditarParcela('${id}',${i})" title="Editar" style="background:var(--surface3);color:var(--text-2);">✏️</button>
           <button class="btn-dx" onclick="remP('${id}',${i})">✕</button>
         </div>
       </div>
@@ -856,6 +936,72 @@ window.remP=(id,i)=>{
   lista.splice(i,1);scheduleSave();updateAll();
 };
 
+// ── EDITAR PARCELA/COMPRA ──
+let editandoParcela=null; // {listId, index}
+window.abrirEditarParcela=(id,i)=>{
+  const m={'pw-list':'parW','py-list':'parY','pl-list':'parL'};
+  const lista=S[m[id]];
+  const p=lista[i];
+  if(!p)return;
+  editandoParcela={listId:id,index:i};
+  document.getElementById('ep-desc').value=p.d;
+  // converte dataCompra 'DD/MM/YYYY' -> 'YYYY-MM-DD' pro input date
+  let dataIso='';
+  if(p.dataCompra){
+    const partes=p.dataCompra.split('/');
+    if(partes.length===3)dataIso=`${partes[2]}-${partes[1].padStart(2,'0')}-${partes[0].padStart(2,'0')}`;
+  }
+  document.getElementById('ep-data').value=dataIso;
+  if(p.permanente){
+    document.getElementById('ep-campos-parcela').style.display='none';
+    document.getElementById('ep-campos-permanente').style.display='block';
+    document.getElementById('ep-valor-perm').value=p.v;
+  }else{
+    document.getElementById('ep-campos-parcela').style.display='block';
+    document.getElementById('ep-campos-permanente').style.display='none';
+    document.getElementById('ep-valor').value=p.v;
+    document.getElementById('ep-total').value=p.total||1;
+  }
+  document.getElementById('modal-editar-parcela').classList.add('open');
+};
+window.fecharModalEditarParcela=()=>{
+  document.getElementById('modal-editar-parcela').classList.remove('open');
+  editandoParcela=null;
+};
+document.getElementById('modal-editar-parcela').addEventListener('click',e=>{if(e.target===document.getElementById('modal-editar-parcela'))window.fecharModalEditarParcela();});
+window.salvarEdicaoParcela=()=>{
+  if(!editandoParcela)return;
+  const m={'pw-list':'parW','py-list':'parY','pl-list':'parL'};
+  const lista=S[m[editandoParcela.listId]];
+  const p=lista[editandoParcela.index];
+  if(!p)return;
+  const desc=document.getElementById('ep-desc').value.trim();
+  const dataInput=document.getElementById('ep-data').value;
+  const dataCompra=dataInput?dataInput.split('-').reverse().join('/'):'';
+  if(!desc){toast('⚠️ Preencha a descrição');return;}
+  p.d=desc;
+  p.dataCompra=dataCompra;
+  if(p.permanente){
+    const v=parseFloat(document.getElementById('ep-valor-perm').value)||0;
+    if(!v){toast('⚠️ Valor inválido');return;}
+    p.v=v;
+  }else{
+    const v=parseFloat(document.getElementById('ep-valor').value)||0;
+    const total=parseInt(document.getElementById('ep-total').value)||1;
+    if(!v||!total){toast('⚠️ Preencha valor e total de parcelas');return;}
+    // se mudou o total, ajusta o array de pagas preservando o que já estava marcado
+    if(total!==p.pagas.length){
+      const novasPagas=Array(total).fill(false);
+      for(let k=0;k<Math.min(total,p.pagas.length);k++) novasPagas[k]=p.pagas[k];
+      p.pagas=novasPagas;
+    }
+    p.total=total;
+    p.v=v;
+  }
+  scheduleSave();updateAll();window.fecharModalEditarParcela();
+  toast('✅ Compra atualizada!');
+};
+
 // ── CONTAS FIXAS ──
 function renderContas(g){
   const lista=g==='05'?S.c05:S.c20;
@@ -868,9 +1014,22 @@ function renderContas(g){
 window.addC=g=>{const d=document.getElementById('a'+g+'d').value.trim(),v=parseFloat(document.getElementById('a'+g+'v').value)||0;if(!d||!v){toast('⚠️ Preencha descrição e valor');return;}(g==='05'?S.c05:S.c20).push({d,v});document.getElementById('a'+g+'d').value='';document.getElementById('a'+g+'v').value='';scheduleSave();renderContas(g);updateAll();toast('✅ Conta adicionada!');};
 window.editC=(g,i)=>{const v=parseFloat(document.getElementById('cv'+g+i).value)||0;(g==='05'?S.c05:S.c20)[i].v=v;scheduleSave();renderContas(g);updateAll();toast('✅ Atualizado!');};
 window.delC=(g,i)=>{if(!confirm('Remover?'))return;(g==='05'?S.c05:S.c20).splice(i,1);scheduleSave();renderContas(g);updateAll();toast('🗑️ Removido');};
-window.saveLim=k=>{const m={w:'clw',y:'cly',l:'cll'};const v=parseFloat(document.getElementById(m[k]).value)||0;if(!v){toast('⚠️ Valor inválido');return;}if(k==='w')S.limW=v;else if(k==='y')S.limY=v;else S.limL=v;scheduleSave();updateAll();toast('✅ Limite atualizado!');};
+window.saveLim=k=>{
+  const mLim={w:'clw',y:'cly',l:'cll'};
+  const mFech={w:'cfw',y:'cfy',l:'cfl'};
+  const v=parseFloat(document.getElementById(mLim[k]).value)||0;
+  const fech=parseInt(document.getElementById(mFech[k]).value)||0;
+  if(!v){toast('⚠️ Valor de limite inválido');return;}
+  if(fech<1||fech>31){toast('⚠️ Dia de fechamento deve ser entre 1 e 31');return;}
+  if(k==='w'){S.limW=v;S.fechW=fech;}else if(k==='y'){S.limY=v;S.fechY=fech;}else{S.limL=v;S.fechL=fech;}
+  scheduleSave();updateAll();toast('✅ Cartão atualizado!');
+};
 window.saveRenda=()=>{const v=parseFloat(document.getElementById('crenda').value)||0;if(!v){toast('⚠️ Valor inválido');return;}S.renda=v;scheduleSave();updateAll();toast('✅ Renda atualizada!');};
-window.fillCfg=()=>{document.getElementById('clw').value=S.limW;document.getElementById('cly').value=S.limY;document.getElementById('cll').value=S.limL;document.getElementById('crenda').value=S.renda;renderContas('05');renderContas('20');};
+window.fillCfg=()=>{
+  document.getElementById('clw').value=S.limW;document.getElementById('cly').value=S.limY;document.getElementById('cll').value=S.limL;
+  document.getElementById('cfw').value=S.fechW||'';document.getElementById('cfy').value=S.fechY||'';document.getElementById('cfl').value=S.fechL||'';
+  document.getElementById('crenda').value=S.renda;renderContas('05');renderContas('20');
+};
 
 // ── EMPRÉSTIMOS ──
 window.abrirModal=()=>document.getElementById('modal-emp').classList.add('open');
@@ -961,15 +1120,61 @@ window.toggleP=(id,i)=>{const e=S.emp.find(x=>x.id===id);if(!e)return;e.pagas[i]
 window.removerEmp=id=>{if(!confirm('Remover este empréstimo?'))return;S.emp=S.emp.filter(e=>e.id!==id);scheduleSave();renderEmp();toast('🗑️ Empréstimo removido');};
 
 // ── UPDATE ALL ──
-function totalAbertoCartao(lista){
+function totalAbertoCartao(lista, diaFechamento){
   return lista.reduce((s,p)=>{
     const pm=migrarParcela(p);
-    return s+valorFaturaMes(pm);
+    return s+valorFaturaMes(pm, diaFechamento);
   },0);
 }
 
-function updateAll(){
-  const fW=totalAbertoCartao(S.parW),fY=totalAbertoCartao(S.parY),fL=totalAbertoCartao(S.parL);
+// ── GRÁFICO DE FATURAS ──
+// Gera lista de meses 'YYYY-MM' ao redor do mesSel: 3 antes, o atual, e 2 depois (6 no total)
+function mesesParaGrafico(mesSel){
+  const [anoBase,mesBase]=mesSel.split('-').map(Number);
+  const lista=[];
+  for(let off=-3; off<=2; off++){
+    let m=mesBase+off, a=anoBase;
+    while(m<1){m+=12;a--;}
+    while(m>12){m-=12;a++;}
+    lista.push(`${a}-${String(m).padStart(2,'0')}`);
+  }
+  return lista;
+}
+function nomeMesCurto(mesYYYYMM){
+  const nomes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const [a,m]=mesYYYYMM.split('-').map(Number);
+  return nomes[m-1]+'/'+String(a).slice(2);
+}
+function renderGraficoFaturas(){
+  const el=document.getElementById('grafico-faturas');if(!el)return;
+  const meses=mesesParaGrafico(S.mesSel);
+  const dados=meses.map(m=>({
+    mes:m,
+    w:S.parW.reduce((s,p)=>{const pm=migrarParcela(p);return s+valorFaturaMesParaMes(pm,m,S.fechW);},0),
+    y:S.parY.reduce((s,p)=>{const pm=migrarParcela(p);return s+valorFaturaMesParaMes(pm,m,S.fechY);},0),
+    l:S.parL.reduce((s,p)=>{const pm=migrarParcela(p);return s+valorFaturaMesParaMes(pm,m,S.fechL);},0),
+  }));
+  const maxVal=Math.max(1,...dados.map(d=>Math.max(d.w,d.y,d.l)));
+  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:10px;height:160px;padding:10px 4px 0;overflow-x:auto;">
+    ${dados.map(d=>{
+      const isAtual=d.mes===S.mesSel;
+      const hw=Math.max(2,Math.round(d.w/maxVal*120));
+      const hy=Math.max(2,Math.round(d.y/maxVal*120));
+      const hl=Math.max(2,Math.round(d.l/maxVal*120));
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px;flex-shrink:0;${isAtual?'opacity:1;':'opacity:0.75;'}">
+        <div style="display:flex;align-items:flex-end;gap:3px;height:120px;">
+          <div title="Wellington: ${fmt(d.w)}" style="width:12px;height:${hw}px;background:#3b82f6;border-radius:3px 3px 0 0;"></div>
+          <div title="Yvoneide: ${fmt(d.y)}" style="width:12px;height:${hy}px;background:#f59e0b;border-radius:3px 3px 0 0;"></div>
+          <div title="Luana: ${fmt(d.l)}" style="width:12px;height:${hl}px;background:#10b981;border-radius:3px 3px 0 0;"></div>
+        </div>
+        <div style="font-size:10px;font-weight:${isAtual?'800':'600'};color:${isAtual?'var(--purple)':'var(--text-3)'};">${nomeMesCurto(d.mes)}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+
+  const fW=totalAbertoCartao(S.parW,S.fechW),fY=totalAbertoCartao(S.parY,S.fechY),fL=totalAbertoCartao(S.parL,S.fechL);
   const fEmp=S.emp.reduce((s,e)=>s+valorEmpMes(e,S.mesSel),0);
   const tv=S.desp.reduce((s,d)=>s+d.v,0),t05=S.c05.reduce((s,c)=>s+c.v,0),t20=S.c20.reduce((s,c)=>s+c.v,0);
   const fix=t05+t20,tot=fix+fW+fY+fL+fEmp+tv,sal=S.renda-tot;
@@ -980,12 +1185,13 @@ function updateAll(){
   bar('pr','br',pR);bar('pw','bw',pW);bar('py','by',pY);bar('pl','bl',pL);
   const vel=document.getElementById('venc');
   if(vel){const its=[...S.c05.map(c=>({dia:'05',d:c.d,v:c.v,cls:'red'})),...S.c20.map(c=>({dia:'20',d:c.d,v:c.v,cls:'amber'})),{dia:'20',d:'💳 Fatura Wellington',v:fW,cls:'blue'},{dia:'20',d:'💳 Fatura Yvoneide',v:fY,cls:'blue'},{dia:'20',d:'💳 Fatura Luana',v:fL,cls:'blue'}];vel.innerHTML=its.map(x=>`<div class="row"><span class="row-left"><span class="tag ${x.cls==='red'?'tr':x.cls==='amber'?'ta':'tb'}" style="margin-right:4px;">Dia ${x.dia}</span>${x.d}</span><span class="row-right ${x.cls}">${fmt(x.v)}</span></div>`).join('');}
-  [{k:'w',lim:S.limW,f:fW,pct:pW,cv:'cv-dw',cs:'cv-sw',cp:'cv-pw',fw:'fw',dw:'dw',pg:'pgw',pl:'pw-list',par:S.parW},{k:'y',lim:S.limY,f:fY,pct:pY,cv:'cv-dy',cs:'cv-sy',cp:'cv-py',fw:'fy',dw:'dy',pg:'pgy',pl:'py-list',par:S.parY},{k:'l',lim:S.limL,f:fL,pct:pL,cv:'cv-dl',cs:'cv-sl',cp:'cv-pl',fw:'fl',dw:'dl',pg:'pgl',pl:'pl-list',par:S.parL}].forEach(c=>{$s(c.cv,fmt(c.lim-c.f));const sub=document.getElementById(c.cs);if(sub)sub.textContent='disponível de '+fmt(c.lim);const chip=document.getElementById(c.cp);if(chip)chip.textContent=c.pct+'%';$s(c.fw,fmt(c.f));$s(c.dw,fmt(c.lim-c.f));const bg=document.getElementById(c.pg);if(bg){bg.style.width=c.pct+'%';bg.style.background=cor(c.pct);}renderParcelas(c.par,c.pl);});
+  [{k:'w',lim:S.limW,f:fW,pct:pW,cv:'cv-dw',cs:'cv-sw',cp:'cv-pw',fw:'fw',dw:'dw',pg:'pgw',pl:'pw-list',par:S.parW,fech:S.fechW},{k:'y',lim:S.limY,f:fY,pct:pY,cv:'cv-dy',cs:'cv-sy',cp:'cv-py',fw:'fy',dw:'dy',pg:'pgy',pl:'py-list',par:S.parY,fech:S.fechY},{k:'l',lim:S.limL,f:fL,pct:pL,cv:'cv-dl',cs:'cv-sl',cp:'cv-pl',fw:'fl',dw:'dl',pg:'pgl',pl:'pl-list',par:S.parL,fech:S.fechL}].forEach(c=>{$s(c.cv,fmt(c.lim-c.f));const sub=document.getElementById(c.cs);if(sub)sub.textContent='disponível de '+fmt(c.lim);const chip=document.getElementById(c.cp);if(chip)chip.textContent=c.pct+'%';$s(c.fw,fmt(c.f));$s(c.dw,fmt(c.lim-c.f));const bg=document.getElementById(c.pg);if(bg){bg.style.width=c.pct+'%';bg.style.background=cor(c.pct);}renderParcelas(c.par,c.pl,c.fech);});
   renderContas('05');renderContas('20');
   const lv=document.getElementById('lvar');
   if(lv)lv.innerHTML=S.desp.length?S.desp.map((d,i)=>`<div class="row"><span class="row-left" style="font-size:12px;">${d.dt} · ${d.d} <span class="tag tgray">${d.cat}</span></span><div style="display:flex;gap:6px;align-items:center;"><span style="font-weight:700;">${fmt(d.v)}</span><button class="btn-dx" onclick="remD(${i})">✕</button></div></div>`).join(''):'<div class="empty">Nenhum lançamento. Use ➕ Lançar.</div>';
   $s('tvar',fmt(tv));
   renderEmp();
+  renderGraficoFaturas();
 }
 
 // ── TABS ──
@@ -993,7 +1199,7 @@ window.showTab=(t,btn)=>{document.querySelectorAll('.section').forEach(s=>s.clas
 window.showTabBtn=t=>{const tabs=['painel','cartoes','despesas','lancamento','emprestimos','config'];document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach((b,i)=>{b.classList.remove('active');if(tabs[i]===t)b.classList.add('active');});document.getElementById('tab-'+t).classList.add('active');};
 
 // ── SIMULAR ──
-window.simular=()=>{const c=document.getElementById('sc').value,v=parseFloat(document.getElementById('sv').value)||0,p=parseInt(document.getElementById('sp').value)||1,pv=v/p;const m={w:{f:totalAbertoCartao(S.parW),l:S.limW},y:{f:totalAbertoCartao(S.parY),l:S.limY},l:{f:totalAbertoCartao(S.parL),l:S.limL}};const {f,l}=m[c],nova=f+pv,disp=l-nova,pct=Math.round(nova/l*100);const ico=pct>90?'🔴':pct>60?'🟡':'🟢',cls=pct>90?'red':pct>60?'amber':'green';document.getElementById('sr').innerHTML=`<div class="ib ${cls}"><span class="ib-icon">${ico}</span><span>Nova fatura: <strong>${fmt(nova)}</strong> (${pct}%) · Parcela: <strong>${fmt(pv)}/mês</strong> · Disponível: <strong>${fmt(Math.max(0,disp))}</strong></span></div>`;};
+window.simular=()=>{const c=document.getElementById('sc').value,v=parseFloat(document.getElementById('sv').value)||0,p=parseInt(document.getElementById('sp').value)||1,pv=v/p;const m={w:{f:totalAbertoCartao(S.parW,S.fechW),l:S.limW},y:{f:totalAbertoCartao(S.parY,S.fechY),l:S.limY},l:{f:totalAbertoCartao(S.parL,S.fechL),l:S.limL}};const {f,l}=m[c],nova=f+pv,disp=l-nova,pct=Math.round(nova/l*100);const ico=pct>90?'🔴':pct>60?'🟡':'🟢',cls=pct>90?'red':pct>60?'amber':'green';document.getElementById('sr').innerHTML=`<div class="ib ${cls}"><span class="ib-icon">${ico}</span><span>Nova fatura: <strong>${fmt(nova)}</strong> (${pct}%) · Parcela: <strong>${fmt(pv)}/mês</strong> · Disponível: <strong>${fmt(Math.max(0,disp))}</strong></span></div>`;};
 
 // ── LANÇAR ──
 window.lancar=()=>{const data=document.getElementById('ld').value,desc=document.getElementById('ldesc').value.trim(),val=parseFloat(document.getElementById('lval').value)||0,cat=document.getElementById('lcat').value,forma=document.getElementById('lf').value;if(!desc||!val){toast('⚠️ Preencha descrição e valor');return;}const dt=data?data.split('-').reverse().join('/'):'Hoje';const novaCompra={d:desc,v:val,total:1,pagas:[false],id:'pc'+Date.now()};if(forma==='w')S.parW.push(novaCompra);else if(forma==='y')S.parY.push(novaCompra);else if(forma==='l')S.parL.push(novaCompra);else S.desp.push({dt,d:desc,v:val,cat});document.getElementById('ldesc').value='';document.getElementById('lval').value='';scheduleSave();updateAll();window.showTabBtn('despesas');toast('✅ Registrado e salvo!');};
