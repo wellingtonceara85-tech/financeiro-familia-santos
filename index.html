@@ -375,6 +375,10 @@ select option{background:#1e1e35;}
     <div class="hcard g"><div class="hcard-icon">✅</div><div class="hcard-label">Saldo livre</div><div class="hcard-value" id="h-saldo">—</div><div class="hcard-sub">Disponível</div></div>
     <div class="hcard a"><div class="hcard-icon">💳</div><div class="hcard-label">Faturas</div><div class="hcard-value" id="h-faturas">—</div><div class="hcard-sub">3 cartões</div></div>
   </div>
+  <div class="hero-grid" style="margin-top:10px;grid-template-columns:repeat(2,1fr);">
+    <div class="hcard g"><div class="hcard-icon">🗓️</div><div class="hcard-label">Saldo Dia 05</div><div class="hcard-value" id="h-saldo05">—</div><div class="hcard-sub" id="h-saldo05-sub">Disponível</div></div>
+    <div class="hcard g"><div class="hcard-icon">🗓️</div><div class="hcard-label">Saldo Dia 20</div><div class="hcard-value" id="h-saldo20">—</div><div class="hcard-sub" id="h-saldo20-sub">Disponível</div></div>
+  </div>
 </div>
 
 <!-- ── NAV ── -->
@@ -557,12 +561,13 @@ select option{background:#1e1e35;}
 <!-- CONFIG -->
 <div id="tab-config" class="section">
   <div class="card card-glow">
-    <div class="cfg-t">💳 Cartões · Limite e Fechamento da Fatura</div>
+    <div class="cfg-t">💳 Cartões · Limite, Fechamento e Vencimento</div>
     <div style="padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🔵 Wellington</div>
       <div class="fr">
         <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="clw" inputmode="decimal"></div>
-        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfw" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfw" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">💵 Vence dia</label><select id="cvw"><option value="5">05</option><option value="20">20</option></select></div>
       </div>
       <button class="btn btn-green btn-sm btn-block" onclick="saveLim('w')" style="margin-top:6px;">✓ Salvar Wellington</button>
     </div>
@@ -570,7 +575,8 @@ select option{background:#1e1e35;}
       <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🟠 Yvoneide</div>
       <div class="fr">
         <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="cly" inputmode="decimal"></div>
-        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfy" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfy" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">💵 Vence dia</label><select id="cvy"><option value="5">05</option><option value="20">20</option></select></div>
       </div>
       <button class="btn btn-green btn-sm btn-block" onclick="saveLim('y')" style="margin-top:6px;">✓ Salvar Yvoneide</button>
     </div>
@@ -578,15 +584,18 @@ select option{background:#1e1e35;}
       <div style="font-size:13px;font-weight:600;color:var(--text-2);margin-bottom:8px;">🟢 Luana</div>
       <div class="fr">
         <div class="fg"><label class="fl">💳 Limite (R$)</label><input type="number" id="cll" inputmode="decimal"></div>
-        <div class="fg" style="max-width:130px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfl" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">📅 Fecha dia</label><input type="number" id="cfl" min="1" max="31" inputmode="decimal"></div>
+        <div class="fg" style="max-width:110px;"><label class="fl">💵 Vence dia</label><select id="cvl"><option value="5">05</option><option value="20">20</option></select></div>
       </div>
       <button class="btn btn-green btn-sm btn-block" onclick="saveLim('l')" style="margin-top:6px;">✓ Salvar Luana</button>
     </div>
-    <div class="ib purple" style="margin-top:10px;"><span class="ib-icon">💡</span><span>O dia de fechamento define em qual fatura uma compra entra: comprou <strong>depois</strong> do fechamento, vai pra fatura do mês seguinte.</span></div>
+    <div class="ib purple" style="margin-top:10px;"><span class="ib-icon">💡</span><span>O dia de fechamento define em qual fatura uma compra entra. O dia de vencimento define se ela entra no Saldo Dia 05 ou Dia 20 do Painel.</span></div>
   </div>
   <div class="card">
     <div class="cfg-t">💰 Renda mensal</div>
     <div class="ci"><span class="ci-desc">Renda total</span><div class="ci-val"><input type="number" id="crenda" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveRenda()">✓</button></div></div>
+    <div class="ci"><span class="ci-desc">🗓️ Recebido dia 05</span><div class="ci-val"><input type="number" id="crendaD05" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveRendaDias()">✓</button></div></div>
+    <div class="ci"><span class="ci-desc">🗓️ Recebido dia 20</span><div class="ci-val"><input type="number" id="crendaD20" inputmode="decimal"></div><div class="ci-acts"><button class="btn btn-green btn-sm" onclick="saveRendaDias()">✓</button></div></div>
   </div>
   <div class="card">
     <div class="cfg-t">🗓️ Contas fixas · Dia 05</div>
@@ -630,7 +639,9 @@ const MESES = {'2026-06':'Junho 2026','2026-07':'Julho 2026','2026-08':'Agosto 2
 
 const DEF = {
   limW:3000,limY:2000,limL:1500,renda:8500,
+  rendaD05:4500,rendaD20:4000,
   fechW:14,fechY:17,fechL:5,
+  vencW:20,vencY:5,vencL:5,
   faturasPagas:[], // {id, cartaoKey, mes, valorTotal, itens:[{d,v}], dataPagamento}
   c05:[
     {d:'Dízimo Wellington (3 partes)',v:470},{d:'Oferta',v:20},{d:'Gás',v:60},
@@ -746,6 +757,11 @@ async function loadFromFirebase(){
   if(!S.fechY)S.fechY=DEF.fechY;
   if(!S.fechL)S.fechL=DEF.fechL;
   if(!S.faturasPagas)S.faturasPagas=[];
+  if(S.rendaD05===undefined)S.rendaD05=DEF.rendaD05;
+  if(S.rendaD20===undefined)S.rendaD20=DEF.rendaD20;
+  if(!S.vencW)S.vencW=DEF.vencW;
+  if(!S.vencY)S.vencY=DEF.vencY;
+  if(!S.vencL)S.vencL=DEF.vencL;
   document.getElementById('loading-screen').style.display='none';
   document.getElementById('mes-sel').value=S.mesSel;
   document.getElementById('sub-mes').textContent=MESES[S.mesSel]||S.mesSel;
@@ -1038,18 +1054,29 @@ window.delC=(g,i)=>{if(!confirm('Remover?'))return;(g==='05'?S.c05:S.c20).splice
 window.saveLim=k=>{
   const mLim={w:'clw',y:'cly',l:'cll'};
   const mFech={w:'cfw',y:'cfy',l:'cfl'};
+  const mVenc={w:'cvw',y:'cvy',l:'cvl'};
   const v=parseFloat(document.getElementById(mLim[k]).value)||0;
   const fech=parseInt(document.getElementById(mFech[k]).value)||0;
+  const venc=parseInt(document.getElementById(mVenc[k]).value)||5;
   if(!v){toast('⚠️ Valor de limite inválido');return;}
   if(fech<1||fech>31){toast('⚠️ Dia de fechamento deve ser entre 1 e 31');return;}
-  if(k==='w'){S.limW=v;S.fechW=fech;}else if(k==='y'){S.limY=v;S.fechY=fech;}else{S.limL=v;S.fechL=fech;}
+  if(k==='w'){S.limW=v;S.fechW=fech;S.vencW=venc;}else if(k==='y'){S.limY=v;S.fechY=fech;S.vencY=venc;}else{S.limL=v;S.fechL=fech;S.vencL=venc;}
   scheduleSave();updateAll();toast('✅ Cartão atualizado!');
 };
 window.saveRenda=()=>{const v=parseFloat(document.getElementById('crenda').value)||0;if(!v){toast('⚠️ Valor inválido');return;}S.renda=v;scheduleSave();updateAll();toast('✅ Renda atualizada!');};
+window.saveRendaDias=()=>{
+  const d05=parseFloat(document.getElementById('crendaD05').value)||0;
+  const d20=parseFloat(document.getElementById('crendaD20').value)||0;
+  S.rendaD05=d05;S.rendaD20=d20;
+  scheduleSave();updateAll();toast('✅ Renda por dia atualizada!');
+};
 window.fillCfg=()=>{
   document.getElementById('clw').value=S.limW;document.getElementById('cly').value=S.limY;document.getElementById('cll').value=S.limL;
   document.getElementById('cfw').value=S.fechW||'';document.getElementById('cfy').value=S.fechY||'';document.getElementById('cfl').value=S.fechL||'';
-  document.getElementById('crenda').value=S.renda;renderContas('05');renderContas('20');
+  document.getElementById('cvw').value=S.vencW||5;document.getElementById('cvy').value=S.vencY||5;document.getElementById('cvl').value=S.vencL||5;
+  document.getElementById('crenda').value=S.renda;
+  document.getElementById('crendaD05').value=S.rendaD05;document.getElementById('crendaD20').value=S.rendaD20;
+  renderContas('05');renderContas('20');
 };
 
 // ── EMPRÉSTIMOS ──
@@ -1283,6 +1310,18 @@ function updateAll(){
   const pL=Math.min(100,Math.round(fL/S.limL*100)),pR=Math.min(100,Math.round(tot/S.renda*100));
   $s('h-renda',fmt(S.renda));$s('h-fixas',fmt(fix));$s('h-saldo',fmt(sal),sal>=0?'var(--green)':'var(--red)');$s('h-faturas',fmt(fW+fY+fL));
   $s('d05',fmt(t05));$s('d20',fmt(t20));$s('dwel',fmt(fW));$s('dyvo',fmt(fY));$s('dlua',fmt(fL));$s('demp',fmt(fEmp));$s('dvar',fmt(tv));$s('dtot',fmt(tot));
+  // ── Saldo por dia (05 e 20): contas fixas + faturas de cartão + empréstimos que vencem naquele dia ──
+  const cartoesPorDia={5:0,20:0};
+  [['w',fW,S.vencW],['y',fY,S.vencY],['l',fL,S.vencL]].forEach(([k,f,venc])=>{cartoesPorDia[venc]=(cartoesPorDia[venc]||0)+f;});
+  const empPorDia={5:0,20:0};
+  S.emp.forEach(e=>{const v=valorEmpMes(e,S.mesSel);empPorDia[e.dia]=(empPorDia[e.dia]||0)+v;});
+  const gastoD05=t05+(cartoesPorDia[5]||0)+(empPorDia[5]||0);
+  const gastoD20=t20+(cartoesPorDia[20]||0)+(empPorDia[20]||0);
+  const saldoD05=S.rendaD05-gastoD05, saldoD20=S.rendaD20-gastoD20;
+  $s('h-saldo05',fmt(saldoD05),saldoD05>=0?'var(--green)':'var(--red)');
+  $s('h-saldo20',fmt(saldoD20),saldoD20>=0?'var(--green)':'var(--red)');
+  const subD05=document.getElementById('h-saldo05-sub');if(subD05)subD05.textContent=`Renda ${fmt(S.rendaD05)} − Gastos ${fmt(gastoD05)}`;
+  const subD20=document.getElementById('h-saldo20-sub');if(subD20)subD20.textContent=`Renda ${fmt(S.rendaD20)} − Gastos ${fmt(gastoD20)}`;
   bar('pr','br',pR);bar('pw','bw',pW);bar('py','by',pY);bar('pl','bl',pL);
   const vel=document.getElementById('venc');
   if(vel){const its=[...S.c05.map(c=>({dia:'05',d:c.d,v:c.v,cls:'red'})),...S.c20.map(c=>({dia:'20',d:c.d,v:c.v,cls:'amber'})),{dia:'20',d:'💳 Fatura Wellington',v:fW,cls:'blue'},{dia:'20',d:'💳 Fatura Yvoneide',v:fY,cls:'blue'},{dia:'20',d:'💳 Fatura Luana',v:fL,cls:'blue'}];vel.innerHTML=its.map(x=>`<div class="row"><span class="row-left"><span class="tag ${x.cls==='red'?'tr':x.cls==='amber'?'ta':'tb'}" style="margin-right:4px;">Dia ${x.dia}</span>${x.d}</span><span class="row-right ${x.cls}">${fmt(x.v)}</span></div>`).join('');}
