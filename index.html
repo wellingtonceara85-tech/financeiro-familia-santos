@@ -840,26 +840,37 @@ function diffMeses(mesSel,dataCompra){
 }
 
 // Valor que esta parcela contribui para a fatura do mêsSel, considerando o dia de fechamento do cartão (opcional)
-// Regra: cada parcela "nasce" em um mês específico (calculado pela data de compra + fechamento + nº da parcela).
-// Se o mêsSel for ANTES do mês de nascimento da parcela, ela ainda não entra (compra futura/parcela futura).
-// Se o mêsSel for IGUAL ou DEPOIS do mês de nascimento e ela ainda não foi paga, ela conta nesse mês
-// (trata como fatura em aberto/atrasada) — só some quando for marcada como paga via toggle ou "Fatura Paga".
+// Regra: cada parcela "nasce" em um mês específico (calculado pela data de compra + fechamento).
+// O sistema assume que a fatura é sempre paga em dia, então a PARCELA ESPERADA naquele mês é calculada
+// diretamente pela posição (diff+1), avançando sozinho conforme o mês selecionado muda — sem depender
+// de marcação manual de "pago". O status de "pagas" e o botão "Fatura Paga" servem como registro/confirmação
+// (histórico), mas não são necessários para a parcela avançar mês a mês.
 function valorFaturaMesParaMes(p, mesSel, diaFechamento){
   if(p.permanente){
     if(p.pagasMeses && p.pagasMeses.includes(mesSel)) return 0; // já marcado como pago nesse mês
     return p.v;
   }
-  const pg=p.pagas?p.pagas.filter(Boolean).length:0;
   const total=p.total||1;
-  const quitado=pg>=total;
-  if(quitado) return 0;
-  // Se não tem data de compra, comportamento antigo: entra se não quitada
-  if(!p.dataCompra) return p.v;
+  const pg=p.pagas?p.pagas.filter(Boolean).length:0;
+  // Se não tem data de compra, comportamento legado: entra todo mês até ser quitada manualmente
+  if(!p.dataCompra) return pg>=total?0:p.v;
   const anoMesFatura=mesFaturaDaCompra(p.dataCompra, diaFechamento);
   const diff=diffMesesAnoMes(mesSel, anoMesFatura);
-  if(diff<0) return 0; // mês selecionado é ANTES da compra nascer: ainda não entra
-  // próxima parcela não paga é a que conta (seja no mês exato, seja atrasada em meses seguintes)
+  const parcelaEsperada=diff+1; // nº da parcela que deveria estar em aberto nesse mês, assumindo pagamento em dia
+  if(parcelaEsperada<1) return 0; // mês selecionado é ANTES da compra nascer: ainda não entra
+  if(parcelaEsperada>total) return 0; // já passou de todas as parcelas: quitada pelo calendário
   return p.v;
+}
+
+// Retorna o índice (0-based) da parcela esperada para o mêsSel, ou -1 se fora do intervalo de parcelas.
+// Usado para saber qual "bolinha" da grade de parcelas corresponde ao mês selecionado.
+function indiceParcelaEsperada(p, mesSel, diaFechamento){
+  if(p.permanente || !p.dataCompra) return -1;
+  const anoMesFatura=mesFaturaDaCompra(p.dataCompra, diaFechamento);
+  const diff=diffMesesAnoMes(mesSel, anoMesFatura);
+  const idx=diff; // 0-based
+  if(idx<0||idx>=(p.total||1)) return -1;
+  return idx;
 }
 
 // Valor da parcela de empréstimo para o mêsSel (empréstimos não usam fechamento de cartão, só mês de início)
@@ -929,18 +940,16 @@ function renderParcelas(lista,id,diaFechamento){
     const pg=p.pagas.filter(Boolean).length;
     const restantes=p.total-pg;
     const quitado=pg===p.total;
-    const valorMes=valorFaturaMesParaMes(p,mesSel,diaFechamento);
-    const aindaNaoComecou=!quitado&&p.dataCompra&&valorMes===0;
-    // atrasada: já deveria ter sido paga (mês de nascimento é anterior ao mês selecionado) e ainda não foi
+    const idxEsperado=indiceParcelaEsperada(p,mesSel,diaFechamento);
+    const compraFutura=!quitado&&p.dataCompra&&diffMesesAnoMes(mesSel,mesFaturaDaCompra(p.dataCompra,diaFechamento))<0;
+    const aindaNaoComecou=compraFutura;
+    // atrasada: o nº de parcelas pagas é menor do que a parcela esperada para o mês selecionado (não está em dia)
     let atrasada=false;
-    if(!quitado&&!aindaNaoComecou&&p.dataCompra){
-      const anoMesFatura=mesFaturaDaCompra(p.dataCompra,diaFechamento);
-      atrasada=diffMesesAnoMes(mesSel,anoMesFatura)>0;
-    }
+    if(!quitado&&p.dataCompra&&idxEsperado>=0&&pg<=idxEsperado) atrasada=true;
     const stTag=quitado?'tg':pg>0?'ta':'tgray';
     const stTxt=quitado?'✅ Quitada':`${pg}/${p.total} pagas`;
     const btns=p.pagas.map((ok,k)=>{
-      const isAtual=!ok&&(k===0||p.pagas[k-1]);
+      const isAtual=!ok&&k===idxEsperado;
       const cls=ok?'pago':isAtual?'atual':'pendente';
       return `<button class="pb pb-mini ${cls}" onclick="toggleParcelaCompra('${id}',${i},${k})" title="Parcela ${k+1}"><span>${ok?'✓':(k+1)}</span></button>`;
     }).join('');
@@ -1282,8 +1291,12 @@ window.marcarFaturaPaga=(cartaoKey)=>{
     if(p.permanente){
       if(!p.pagasMeses)p.pagasMeses=[];
       if(!p.pagasMeses.includes(mesSel))p.pagasMeses.push(mesSel);
+    }else if(p.dataCompra){
+      // marca exatamente a parcela esperada para este mês (calculada pela data da compra)
+      const idx=indiceParcelaEsperada(p,mesSel,diaFechamento);
+      if(idx>=0)p.pagas[idx]=true;
     }else{
-      // marca a próxima parcela não paga (é sempre essa que conta na fatura do mês, seja em dia ou atrasada)
+      // sem data de compra: marca a próxima não paga (comportamento legado)
       const idx=p.pagas.findIndex(x=>!x);
       if(idx>=0)p.pagas[idx]=true;
     }
@@ -1299,16 +1312,22 @@ window.desmarcarFaturaPaga=(idFatura)=>{
   if(!confirm(`Desfazer o pagamento da fatura de ${MESES[fatura.mes]||fatura.mes} (${fatura.cartaoNome})? Isso vai desmarcar as parcelas/permanentes que foram pagas por ela.`))return;
   const info=CARTAO_INFO[fatura.cartaoKey];
   const lista=S[info.lista];
-  // desmarca a ÚLTIMA parcela paga de cada item que fez parte dessa fatura (reverte a marcação mais recente)
+  const diaFechamento=S[info.fech];
   for(let i=0;i<lista.length;i++){
     const p=lista[i];
     if(p.permanente){
       if(p.pagasMeses)p.pagasMeses=p.pagasMeses.filter(m=>m!==fatura.mes);
     }else if(fatura.itens.some(it=>it.d===p.d&&!it.permanente)){
-      // encontra a última parcela marcada como paga e desmarca
-      let lastPaidIdx=-1;
-      for(let k=0;k<p.pagas.length;k++){if(p.pagas[k])lastPaidIdx=k;}
-      if(lastPaidIdx>=0)p.pagas[lastPaidIdx]=false;
+      if(p.dataCompra){
+        // desmarca exatamente a parcela que correspondia a este mês
+        const idx=indiceParcelaEsperada(p,fatura.mes,diaFechamento);
+        if(idx>=0&&p.pagas[idx])p.pagas[idx]=false;
+      }else{
+        // sem data: desmarca a última paga (comportamento legado)
+        let lastPaidIdx=-1;
+        for(let k=0;k<p.pagas.length;k++){if(p.pagas[k])lastPaidIdx=k;}
+        if(lastPaidIdx>=0)p.pagas[lastPaidIdx]=false;
+      }
     }
   }
   S.faturasPagas=S.faturasPagas.filter(f=>f.id!==idFatura);
