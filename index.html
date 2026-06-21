@@ -247,6 +247,7 @@ select option{background:#1e1e35;}
 .slabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
 .slabel::after{content:'';flex:1;height:1px;background:var(--border);}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 
@@ -388,6 +389,7 @@ select option{background:#1e1e35;}
     <button class="nav-btn" onclick="showTab('cartoes',this)">💳 Cartões</button>
     <button class="nav-btn" onclick="showTab('despesas',this)">📋 Despesas</button>
     <button class="nav-btn" onclick="showTab('lancamento',this)">➕ Lançar</button>
+    <button class="nav-btn" onclick="showTab('importar',this)">📥 Importar</button>
     <button class="nav-btn" onclick="showTab('emprestimos',this)">📉 Empréstimos</button>
     <button class="nav-btn" onclick="showTab('config',this)">⚙️ Config</button>
   </div>
@@ -540,6 +542,37 @@ select option{background:#1e1e35;}
   </div>
 </div>
 
+<!-- IMPORTAR -->
+<div id="tab-importar" class="section">
+  <div class="card card-glow">
+    <div class="card-title">📥 Importar extrato ou fatura</div>
+    <div class="ib purple"><span class="ib-icon">💡</span><span>Aceita CSV e OFX (extrato/fatura Nubank) ou PDF da fatura. O sistema lê o arquivo, identifica as transações e sugere a categoria automaticamente — você só confirma.</span></div>
+    <div style="margin-top:14px;">
+      <input type="file" id="import-file" accept=".csv,.ofx,.pdf" style="display:none;" onchange="window.handleArquivoImportado(event)">
+      <button class="btn btn-main btn-block" onclick="document.getElementById('import-file').click()">📂 Escolher arquivo (CSV / OFX / PDF)</button>
+    </div>
+    <div id="import-status" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card" id="import-preview-card" style="display:none;">
+    <div class="card-title">🔍 Pré-visualização — confira antes de importar</div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;" id="import-preview-resumo"></div>
+    <div id="import-preview-list"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-main" style="flex:1;" onclick="window.confirmarImportacao()">✅ Confirmar importação</button>
+      <button class="btn btn-ghost" onclick="window.cancelarImportacao()">✕ Cancelar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Transações importadas</div>
+    <div class="fr" style="margin-bottom:10px;">
+      <div class="fg"><label class="fl">🗓️ Filtrar por mês</label><input type="month" id="import-filtro-mes" onchange="window.renderTransacoesImportadas()"></div>
+    </div>
+    <div id="import-lista"><div class="empty">Nenhuma transação importada ainda</div></div>
+  </div>
+</div>
+
 <!-- EMPRÉSTIMOS -->
 <div id="tab-emprestimos" class="section">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
@@ -625,6 +658,8 @@ select option{background:#1e1e35;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBGIQkV7VOkb5I7niBBUdLo3y1-IfC-oFE",
@@ -648,6 +683,9 @@ const DEF = {
   fechW:14,fechY:17,fechL:5,
   vencW:20,vencY:5,vencL:5,
   faturasPagas:[], // {id, cartaoKey, mes, valorTotal, itens:[{d,v}], dataPagamento}
+  transacoesImportadas:[], // {id, data, descricao, valor, categoria, subcategoria, essencial, recorrente, origem, origemClassificacao}
+  dicionarioClassificacao:{}, // {descricaoNormalizada: {categoria, subcategoria, essencial}} -- aprendido com correções manuais
+  limiarImpulso:50,
   c05:[
     {d:'Dízimo Wellington (3 partes)',v:470},{d:'Oferta',v:20},{d:'Gás',v:60},
     {d:'Internet',v:99.90},{d:'Plano celular Luana',v:29.90},{d:'Plano celular Lívia',v:32.90},
@@ -762,6 +800,9 @@ async function loadFromFirebase(){
   if(!S.fechY)S.fechY=DEF.fechY;
   if(!S.fechL)S.fechL=DEF.fechL;
   if(!S.faturasPagas)S.faturasPagas=[];
+  if(!S.transacoesImportadas)S.transacoesImportadas=[];
+  if(!S.dicionarioClassificacao)S.dicionarioClassificacao={};
+  if(!S.limiarImpulso)S.limiarImpulso=DEF.limiarImpulso;
   if(S.rendaD05===undefined)S.rendaD05=DEF.rendaD05;
   if(S.rendaD20===undefined)S.rendaD20=DEF.rendaD20;
   if(!S.vencW)S.vencW=DEF.vencW;
@@ -797,6 +838,261 @@ window.mudarMes=()=>{S.mesSel=document.getElementById('mes-sel').value;document.
 
 // ── HELPERS DE MÊS ──
 // Converte 'DD/MM/YYYY' ou 'YYYY-MM' em {ano,mes,dia} (1-based; dia=null se não informado)
+// ══════════════ IMPORTAÇÃO E CLASSIFICAÇÃO AUTOMÁTICA ══════════════
+const REGRAS_CATEGORIA = [
+  { padrao: /ifood|rappi|james delivery/i, categoria:'Alimentação', subcategoria:'Delivery', essencial:false },
+  { padrao: /restaurante|lanchonete|padaria|acaiteria|gelateria|pizza/i, categoria:'Alimentação', subcategoria:'Restaurante', essencial:false },
+  { padrao: /uber|99app|99pop|uberrides|taxi/i, categoria:'Transporte', subcategoria:'App de transporte', essencial:false },
+  { padrao: /posto|petrobras|ipiranga|shell|combustivel|comercio de petrol/i, categoria:'Combustível', subcategoria:'Combustível', essencial:true },
+  { padrao: /amazon|mercado livre|shopee|aliexpress|shein/i, categoria:'Compras', subcategoria:'E-commerce', essencial:false },
+  { padrao: /netflix|spotify|disney|hbo|max|prime video|youtube premium|deezer|wellhub|gympass/i, categoria:'Assinaturas', subcategoria:'Assinaturas', essencial:false },
+  { padrao: /apple\.?com|google (one|play)|claro|vivo|tim|oi\b/i, categoria:'Assinaturas', subcategoria:'Telefonia/Serviços', essencial:false },
+  { padrao: /farmacia|drogaria|drogasil|raia|pague menos/i, categoria:'Saúde', subcategoria:'Farmácia', essencial:true },
+  { padrao: /supermercado|mercado(?! livre)|hortifruti|atacad[aã]o|hiper/i, categoria:'Mercado', subcategoria:'Mercado', essencial:true },
+  { padrao: /escola|faculdade|colegio|curso/i, categoria:'Educação', subcategoria:'Educação', essencial:true },
+];
+
+function normalizarDescricao(d){ return (d||'').toLowerCase().trim().replace(/\s+/g,' '); }
+
+// Classifica uma transação: 1º checa dicionário aprendido (correções manuais), depois regras padrão
+function classificarTransacao(descricao, valor){
+  const norm = normalizarDescricao(descricao);
+  if(S.dicionarioClassificacao[norm]){
+    return {...S.dicionarioClassificacao[norm], origemClassificacao:'manual'};
+  }
+  const regra = REGRAS_CATEGORIA.find(r => r.padrao.test(descricao));
+  if(regra){
+    return {categoria:regra.categoria, subcategoria:regra.subcategoria, essencial:regra.essencial, origemClassificacao:'auto'};
+  }
+  return {categoria:'Outros', subcategoria:'Outros', essencial:null, origemClassificacao:'auto'};
+}
+
+// Salva uma correção manual no dicionário, para próximas transações do mesmo estabelecimento já virem certas
+window.salvarCorrecaoClassificacao=(descricao, categoria, subcategoria, essencial)=>{
+  const norm = normalizarDescricao(descricao);
+  S.dicionarioClassificacao[norm] = {categoria, subcategoria, essencial};
+  scheduleSave();
+};
+
+// ── PARSER CSV (Nubank) ──
+function parseCSVNubank(textoCSV){
+  const resultado = Papa.parse(textoCSV, {header:true, skipEmptyLines:true, dynamicTyping:true});
+  return resultado.data.map(row => {
+    // Nubank exporta colunas variando entre 'date/title/amount' (fatura) e 'Data/Valor/Identificador/Descrição' (extrato)
+    const data = row.date || row.Data || row.data;
+    const descricao = row.title || row['Descrição'] || row.descricao || row.Estabelecimento || '';
+    const valor = row.amount ?? row.Valor ?? row.valor;
+    if(!data || valor===undefined || valor===null) return null;
+    return {data:normalizarDataImportada(data), descricao:String(descricao).trim(), valor:Math.abs(parseFloat(valor)), origem:'csv'};
+  }).filter(Boolean);
+}
+
+// ── PARSER OFX (Nubank) ──
+function parseOFXNubank(textoOFX){
+  const transacoes = [];
+  const blocos = textoOFX.split('<STMTTRN>').slice(1);
+  blocos.forEach(bloco => {
+    const pegar = (tag) => { const m = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]*)`)); return m ? m[1].trim() : null; };
+    const dtPosted = pegar('DTPOSTED');
+    const valor = pegar('TRNAMT');
+    const memo = pegar('MEMO') || pegar('NAME');
+    if(!dtPosted || valor===null) return;
+    transacoes.push({
+      data: normalizarDataOFX(dtPosted),
+      descricao: (memo||'').trim(),
+      valor: Math.abs(parseFloat(valor)),
+      origem:'ofx'
+    });
+  });
+  return transacoes;
+}
+function normalizarDataOFX(dtPosted){
+  // formato AAAAMMDD ou AAAAMMDDHHMMSS
+  const ano = dtPosted.slice(0,4), mes = dtPosted.slice(4,6), dia = dtPosted.slice(6,8);
+  return `${dia}/${mes}/${ano}`;
+}
+function normalizarDataImportada(d){
+  // aceita 'AAAA-MM-DD' (CSV Nubank) e converte para 'DD/MM/AAAA'
+  if(typeof d === 'string' && d.includes('-')){
+    const [a,m,dia] = d.split('-');
+    if(a && a.length===4) return `${dia}/${m}/${a}`;
+  }
+  return d;
+}
+
+// ── PARSER PDF (fatura Nubank) ──
+async function extrairTextoPDF(arrayBuffer){
+  const pdf = await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  let textoCompleto = '';
+  for(let i=1;i<=pdf.numPages;i++){
+    const pagina = await pdf.getPage(i);
+    const conteudo = await pagina.getTextContent();
+    textoCompleto += conteudo.items.map(it=>it.str).join(' ') + '\n';
+  }
+  return textoCompleto;
+}
+function extrairTransacoesDoPDFNubank(texto, mesReferencia){
+  // Padrão real validado: "16 JUN •••• 6286 Super Amigao R$ 163,41" (mês/ano vem do contexto da fatura)
+  const meses = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
+  const regex = /(\d{2})\s?(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[ \t]+([^\n\r]+?)[ \t]+R\$\s?(-?[\d.,]+)/g;
+  const transacoes = [];
+  let m;
+  while((m = regex.exec(texto)) !== null){
+    const dia = m[1], mesAbrev = m[2], valorStr = m[4];
+    let descricao = m[3].trim();
+    // remove prefixo de "•••• 1234" (últimos dígitos do cartão) que o Nubank imprime antes do nome do estabelecimento
+    descricao = descricao.replace(/^[•·●○]{2,}\s*\d{3,4}\s*/, '').trim();
+    // ignora linhas de cabeçalho/resumo que por acaso batem no padrão (raro após a correção do regex acima)
+    if(/^TRANSAÇ|^DE\s\d/.test(descricao)) continue;
+    if(descricao.length < 2) continue;
+    const mesNum = meses[mesAbrev];
+    if(!mesNum) continue;
+    const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
+    if(isNaN(valor) || valor<=0) continue; // ignora estornos/negativos e linhas mal capturadas
+    // monta ano: usa o ano do mesReferencia, ajustando se o mês da transação for "antes" (virada de ano)
+    let ano = mesReferencia ? parseInt(mesReferencia.split('-')[0]) : new Date().getFullYear();
+    transacoes.push({data:`${dia}/${String(mesNum).padStart(2,'0')}/${ano}`, descricao, valor, origem:'pdf'});
+  }
+  return transacoes;
+}
+
+// Deduplica contra o que já existe: mesma data+descrição+valor não entra de novo
+function deduplicarTransacoes(novas, existentes){
+  const chaveDe = t => `${t.data}|${normalizarDescricao(t.descricao)}|${t.valor.toFixed(2)}`;
+  const chavesExistentes = new Set(existentes.map(chaveDe));
+  return novas.filter(t => !chavesExistentes.has(chaveDe(t)));
+}
+
+let transacoesPendentesImportacao = [];
+
+window.handleArquivoImportado=async(event)=>{
+  const file = event.target.files[0];
+  if(!file)return;
+  const statusEl = document.getElementById('import-status');
+  statusEl.innerHTML = '<div class="ib purple"><span class="ib-icon">⏳</span><span>Lendo arquivo...</span></div>';
+  try{
+    const ext = file.name.split('.').pop().toLowerCase();
+    let brutas = [];
+    if(ext==='csv'){
+      const texto = await file.text();
+      brutas = parseCSVNubank(texto);
+    }else if(ext==='ofx'){
+      const texto = await file.text();
+      brutas = parseOFXNubank(texto);
+    }else if(ext==='pdf'){
+      const buffer = await file.arrayBuffer();
+      const texto = await extrairTextoPDF(buffer);
+      brutas = extrairTransacoesDoPDFNubank(texto, S.mesSel);
+    }else{
+      statusEl.innerHTML = '<div class="ib amber"><span class="ib-icon">⚠️</span><span>Formato não suportado. Use CSV, OFX ou PDF.</span></div>';
+      return;
+    }
+    if(!brutas.length){
+      statusEl.innerHTML = '<div class="ib amber"><span class="ib-icon">⚠️</span><span>Nenhuma transação encontrada nesse arquivo.</span></div>';
+      return;
+    }
+    const semDuplicadas = deduplicarTransacoes(brutas, S.transacoesImportadas);
+    const duplicadasCount = brutas.length - semDuplicadas.length;
+    // classifica automaticamente cada transação
+    transacoesPendentesImportacao = semDuplicadas.map(t => ({
+      id:'imp'+Date.now()+Math.random().toString(36).slice(2,7),
+      ...t,
+      ...classificarTransacao(t.descricao, t.valor),
+      recorrente:false,
+    }));
+    statusEl.innerHTML = transacoesPendentesImportacao.length
+      ? `<div class="ib green"><span class="ib-icon">✅</span><span>${transacoesPendentesImportacao.length} transação(ões) encontrada(s)${duplicadasCount?` · ${duplicadasCount} já estavam importadas (ignoradas)`:''}.</span></div>`
+      : `<div class="ib amber"><span class="ib-icon">ℹ️</span><span>Todas as ${brutas.length} transações desse arquivo já tinham sido importadas antes.</span></div>`;
+    renderPreviewImportacao();
+  }catch(e){
+    console.error(e);
+    statusEl.innerHTML = `<div class="ib red"><span class="ib-icon">⚠️</span><span>Erro ao ler o arquivo: ${e.message}</span></div>`;
+  }finally{
+    event.target.value = ''; // permite reimportar o mesmo arquivo se necessário
+  }
+};
+
+function renderPreviewImportacao(){
+  const card = document.getElementById('import-preview-card');
+  const lista = document.getElementById('import-preview-list');
+  const resumo = document.getElementById('import-preview-resumo');
+  if(!transacoesPendentesImportacao.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  const total = transacoesPendentesImportacao.reduce((s,t)=>s+t.valor,0);
+  resumo.textContent = `${transacoesPendentesImportacao.length} transações · Total: ${fmt(total)}`;
+  lista.innerHTML = transacoesPendentesImportacao.map((t,i)=>`
+    <div class="row" style="flex-wrap:wrap;gap:6px;padding:8px 0;">
+      <span class="row-left" style="font-size:12px;flex:1;min-width:140px;">${t.data} · ${t.descricao}</span>
+      <select style="font-size:11px;padding:3px 6px;border-radius:6px;background:var(--surface3);color:var(--text-2);border:1px solid var(--border-md);" onchange="window.alterarCategoriaPreview(${i}, this.value)">
+        ${['Mercado','Alimentação','Transporte','Combustível','Saúde','Assinaturas','Compras','Educação','Lazer','Outros'].map(c=>`<option ${t.categoria===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <button class="btn-dx" style="background:${t.essencial?'var(--green-light)':'var(--surface3)'};color:${t.essencial?'var(--green)':'var(--text-2)'};" onclick="window.toggleEssencialPreview(${i})" title="Essencial">${t.essencial?'✅ Essencial':'🛒 Supérfluo'}</button>
+      <span style="font-weight:700;font-size:12px;min-width:70px;text-align:right;">${fmt(t.valor)}</span>
+    </div>`).join('');
+}
+window.alterarCategoriaPreview=(i, categoria)=>{
+  transacoesPendentesImportacao[i].categoria = categoria;
+  transacoesPendentesImportacao[i].origemClassificacao = 'manual';
+};
+window.toggleEssencialPreview=(i)=>{
+  const t = transacoesPendentesImportacao[i];
+  t.essencial = !t.essencial;
+  t.origemClassificacao = 'manual';
+  renderPreviewImportacao();
+};
+window.confirmarImportacao=()=>{
+  if(!transacoesPendentesImportacao.length)return;
+  // salva correções manuais no dicionário de aprendizado
+  transacoesPendentesImportacao.forEach(t=>{
+    if(t.origemClassificacao==='manual'){
+      window.salvarCorrecaoClassificacao(t.descricao, t.categoria, t.subcategoria, t.essencial);
+    }
+  });
+  S.transacoesImportadas.push(...transacoesPendentesImportacao);
+  const qtd = transacoesPendentesImportacao.length;
+  transacoesPendentesImportacao = [];
+  document.getElementById('import-preview-card').style.display='none';
+  document.getElementById('import-status').innerHTML = `<div class="ib green"><span class="ib-icon">✅</span><span>${qtd} transação(ões) importada(s) com sucesso!</span></div>`;
+  scheduleSave();
+  window.renderTransacoesImportadas();
+  toast(`✅ ${qtd} transações importadas!`);
+};
+window.cancelarImportacao=()=>{
+  transacoesPendentesImportacao = [];
+  document.getElementById('import-preview-card').style.display='none';
+  document.getElementById('import-status').innerHTML = '';
+};
+
+window.renderTransacoesImportadas=()=>{
+  const el = document.getElementById('import-lista');
+  if(!el)return;
+  const filtroMes = document.getElementById('import-filtro-mes')?.value;
+  let lista = [...S.transacoesImportadas].sort((a,b)=>{
+    const da = parseDataCompra(a.data), db = parseDataCompra(b.data);
+    if(!da||!db)return 0;
+    return (db.ano*12+db.mes) - (da.ano*12+da.mes) || db.dia-da.dia;
+  });
+  if(filtroMes){
+    const [anoF, mesF] = filtroMes.split('-').map(Number);
+    lista = lista.filter(t=>{ const d=parseDataCompra(t.data); return d && d.ano===anoF && d.mes===mesF; });
+  }
+  if(!lista.length){ el.innerHTML='<div class="empty">Nenhuma transação importada ainda</div>'; return; }
+  el.innerHTML = lista.map(t=>`
+    <div class="row" style="padding:6px 0;">
+      <span class="row-left" style="font-size:12px;">${t.data} · ${t.descricao} <span class="tag tgray">${t.categoria}</span>${t.essencial===false?' <span class="tag ta">🛒</span>':t.essencial===true?' <span class="tag tg">✅</span>':''}</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-weight:700;font-size:12px;">${fmt(t.valor)}</span>
+        <button class="btn-dx" onclick="window.removerTransacaoImportada('${t.id}')">✕</button>
+      </div>
+    </div>`).join('');
+};
+window.removerTransacaoImportada=(id)=>{
+  S.transacoesImportadas = S.transacoesImportadas.filter(t=>t.id!==id);
+  scheduleSave();
+  window.renderTransacoesImportadas();
+  toast('🗑️ Transação removida');
+};
+
 function parseDataCompra(d){
   if(!d)return null;
   if(d.includes('/')){
@@ -1446,7 +1742,7 @@ function updateAll(){
 }
 
 // ── TABS ──
-window.showTab=(t,btn)=>{document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');if(btn)btn.classList.add('active');if(t==='config')window.fillCfg();};
+window.showTab=(t,btn)=>{document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');if(btn)btn.classList.add('active');if(t==='config')window.fillCfg();if(t==='importar')window.renderTransacoesImportadas();};
 window.showTabBtn=t=>{const tabs=['painel','cartoes','despesas','lancamento','emprestimos','config'];document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach((b,i)=>{b.classList.remove('active');if(tabs[i]===t)b.classList.add('active');});document.getElementById('tab-'+t).classList.add('active');};
 
 // ── SIMULAR ──
