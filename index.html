@@ -390,6 +390,7 @@ select option{background:#1e1e35;}
     <button class="nav-btn" onclick="showTab('despesas',this)">📋 Despesas</button>
     <button class="nav-btn" onclick="showTab('lancamento',this)">➕ Lançar</button>
     <button class="nav-btn" onclick="showTab('importar',this)">📥 Importar</button>
+    <button class="nav-btn" onclick="showTab('inteligencia',this)">🧠 Inteligência</button>
     <button class="nav-btn" onclick="showTab('emprestimos',this)">📉 Empréstimos</button>
     <button class="nav-btn" onclick="showTab('config',this)">⚙️ Config</button>
   </div>
@@ -570,6 +571,94 @@ select option{background:#1e1e35;}
       <div class="fg"><label class="fl">🗓️ Filtrar por mês</label><input type="month" id="import-filtro-mes" onchange="window.renderTransacoesImportadas()"></div>
     </div>
     <div id="import-lista"><div class="empty">Nenhuma transação importada ainda</div></div>
+  </div>
+</div>
+
+<!-- INTELIGÊNCIA FINANCEIRA -->
+<div id="tab-inteligencia" class="section">
+  <div class="card card-glow">
+    <div class="card-title">🧠 Inteligência Financeira</div>
+    <div class="fr">
+      <div class="fg"><label class="fl">📅 Período de análise</label>
+        <select id="if-periodo" onchange="window.renderInteligenciaFinanceira()">
+          <option value="30">Últimos 30 dias</option>
+          <option value="60">Últimos 60 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </select>
+      </div>
+    </div>
+    <div id="if-aviso-sem-dados" style="display:none;" class="ib amber"><span class="ib-icon">ℹ️</span><span>Ainda não há transações importadas suficientes para essa análise. Importe extratos/faturas na aba 📥 Importar.</span></div>
+  </div>
+
+  <div id="if-conteudo" style="display:none;">
+    <div class="grid2">
+      <div class="stat-mini"><div class="stat-mini-label">💸 Total gasto</div><div class="stat-mini-value" style="color:var(--amber);" id="if-total-gasto">—</div><div class="stat-mini-sub" id="if-total-sub">no período</div></div>
+      <div class="stat-mini"><div class="stat-mini-label">📊 Transações</div><div class="stat-mini-value" id="if-qtd-transacoes">—</div><div class="stat-mini-sub">no período</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 Ranking de maiores gastos</div>
+      <div id="if-ranking-gastos"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏪 Estabelecimentos que mais consomem</div>
+      <div id="if-ranking-estabelecimentos"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 Categorias que mais cresceram</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Comparado ao período anterior de mesmo tamanho</div>
+      <div id="if-categorias-cresceram"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔔 Alertas automáticos</div>
+      <div id="if-alertas"></div>
+    </div>
+
+    <!-- DETECTOR DE VAZAMENTOS -->
+    <div class="card card-glow" style="border-color:var(--red);">
+      <div class="card-title">🕵️ Detector de Vazamentos Financeiros</div>
+      <div class="ib red"><span class="ib-icon">🚨</span><span id="if-saldo-status">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💰 Economia Potencial</div>
+      <div class="fg"><label class="fl">🔧 Simular corte de <span id="if-pct-corte-label">50</span>% nos gastos não essenciais</label>
+        <input type="range" id="if-pct-corte" min="0" max="100" value="50" step="10" oninput="window.renderEconomiaPotencial()" style="width:100%;">
+      </div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="stat-mini"><div class="stat-mini-label">📅 Economia mensal</div><div class="stat-mini-value" style="color:var(--green);" id="if-economia-mensal">—</div></div>
+        <div class="stat-mini"><div class="stat-mini-label">🗓️ Economia anual</div><div class="stat-mini-value" style="color:var(--green);" id="if-economia-anual">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔻 Ranking de Vazamentos</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;">Ordenado pelo maior potencial de economia</div>
+      <div id="if-ranking-vazamentos"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><div class="card-title" style="font-size:13px;">📦 Assinaturas recorrentes</div><div id="if-assinaturas"></div></div>
+      <div class="card"><div class="card-title" style="font-size:13px;">🍔 Delivery</div><div id="if-delivery"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title" style="font-size:13px;">🚗 Transporte</div><div id="if-transporte"></div></div>
+      <div class="card"><div class="card-title" style="font-size:13px;">⚡ Compras por impulso</div>
+        <div class="fg"><label class="fl">💵 Limiar (R$)</label><input type="number" id="if-limiar-impulso" value="50" oninput="window.salvarLimiarImpulso(this.value)"></div>
+        <div id="if-impulso"></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title" style="font-size:13px;">🔁 Gastos repetitivos</div><div id="if-repetitivos"></div></div>
+    <div class="card"><div class="card-title" style="font-size:13px;">📦 Parcelamentos ativos</div><div id="if-parcelamentos"></div></div>
+    <div class="card"><div class="card-title" style="font-size:13px;">💳 Utilização dos cartões</div><div id="if-utilizacao-cartoes"></div></div>
+
+    <div class="card card-glow">
+      <div class="card-title">🎯 Plano para Sair do Vermelho</div>
+      <div id="if-plano-vermelho"></div>
+    </div>
   </div>
 </div>
 
@@ -1091,6 +1180,301 @@ window.removerTransacaoImportada=(id)=>{
   scheduleSave();
   window.renderTransacoesImportadas();
   toast('🗑️ Transação removida');
+};
+
+// ══════════════ 🧠 INTELIGÊNCIA FINANCEIRA + 🕵️ DETECTOR DE VAZAMENTOS ══════════════
+
+const CATEGORIAS_ESSENCIAIS = ['Mercado','Farmácia','Saúde','Combustível','Educação','Contas fixas'];
+
+function parseDataBR(d){
+  // 'DD/MM/AAAA' -> Date
+  if(!d)return null;
+  const p = d.split('/');
+  if(p.length!==3)return null;
+  return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+}
+
+function filtrarPorPeriodo(transacoes, dias, offsetDias=0){
+  const hoje = new Date();
+  const fim = new Date(hoje); fim.setDate(fim.getDate() - offsetDias);
+  const inicio = new Date(fim); inicio.setDate(inicio.getDate() - dias);
+  return transacoes.filter(t => {
+    const d = parseDataBR(t.data);
+    return d && d >= inicio && d <= fim;
+  });
+}
+
+function agruparPorDescricao(transacoes){
+  const grupos = {};
+  transacoes.forEach(t => {
+    const chave = normalizarDescricao(t.descricao);
+    if(!grupos[chave]) grupos[chave] = {nome:t.descricao, valor:0, ocorrencias:0};
+    grupos[chave].valor += t.valor;
+    grupos[chave].ocorrencias++;
+  });
+  return Object.values(grupos);
+}
+
+function somarPorCategoria(transacoes){
+  const out = {};
+  transacoes.forEach(t => { out[t.categoria] = (out[t.categoria]||0) + t.valor; });
+  return out;
+}
+
+function ehNaoEssencial(t){
+  if(t.essencial === true) return false;
+  if(t.essencial === false) return true;
+  // essencial===null (ambíguo): usa a categoria como fallback
+  return !CATEGORIAS_ESSENCIAIS.includes(t.categoria);
+}
+
+// ── Os 10 analisadores ──
+function analisarAssinaturas(transacoes){
+  const itens = agruparPorDescricao(transacoes.filter(t => t.subcategoria==='Assinaturas' || t.subcategoria==='Telefonia/Serviços'))
+    .sort((a,b)=>b.valor-a.valor);
+  const totalMensal = itens.reduce((s,i)=>s+i.valor,0);
+  return {itens, totalMensal, totalAnual: totalMensal*12};
+}
+function analisarDelivery(transacoes){
+  const itens = transacoes.filter(t => t.subcategoria==='Delivery');
+  const total = itens.reduce((s,t)=>s+t.valor,0);
+  const porApp = agruparPorDescricao(itens).sort((a,b)=>b.valor-a.valor);
+  return {total, qtd: itens.length, porApp, mediaCompra: total/(itens.length||1)};
+}
+function analisarTransporte(transacoes){
+  const itens = transacoes.filter(t => t.categoria==='Transporte');
+  const naoEssencial = itens.filter(ehNaoEssencial).reduce((s,t)=>s+t.valor,0);
+  const total = itens.reduce((s,t)=>s+t.valor,0);
+  return {total, naoEssencial, qtd: itens.length};
+}
+function analisarComprasImpulso(transacoes, limiar){
+  const candidatas = transacoes.filter(t =>
+    !t.recorrente && t.valor >= limiar && !CATEGORIAS_ESSENCIAIS.includes(t.categoria)
+  );
+  return {itens: candidatas.sort((a,b)=>b.valor-a.valor), qtd: candidatas.length, total: candidatas.reduce((s,t)=>s+t.valor,0)};
+}
+function rankingEstabelecimentos(transacoes, top=5){
+  return agruparPorDescricao(transacoes).sort((a,b)=>b.valor-a.valor).slice(0,top);
+}
+function categoriasQueMaisCresceram(atual, anterior){
+  const somaAtual = somarPorCategoria(atual), somaAnterior = somarPorCategoria(anterior);
+  return Object.keys(somaAtual).map(cat => {
+    const variacao = somaAnterior[cat] ? ((somaAtual[cat]-somaAnterior[cat])/somaAnterior[cat])*100 : 100;
+    return {categoria:cat, valorAtual:somaAtual[cat], valorAnterior:somaAnterior[cat]||0, variacaoPct:variacao};
+  }).sort((a,b)=>b.variacaoPct-a.variacaoPct);
+}
+function gastosRepetitivos(transacoes, minOcorrencias=3){
+  return agruparPorDescricao(transacoes).filter(g=>g.ocorrencias>=minOcorrencias).sort((a,b)=>b.valor-a.valor);
+}
+function analisarParcelamentos(){
+  const todasParcelas = [...S.parW, ...S.parY, ...S.parL].filter(p => !p.permanente && p.total>1);
+  const ativas = todasParcelas.filter(p => (p.pagas?p.pagas.filter(Boolean).length:0) < p.total);
+  const comprometidoMesAtual = ativas.reduce((s,p)=>{
+    const pg = p.pagas?p.pagas.filter(Boolean).length:0;
+    return pg<p.total ? s+p.v : s;
+  },0);
+  const comprometidoTotal = ativas.reduce((s,p)=>{
+    const pg = p.pagas?p.pagas.filter(Boolean).length:0;
+    return s + (p.total-pg)*p.v;
+  },0);
+  return {qtdAtivas: ativas.length, comprometidoMesAtual, comprometidoTotal};
+}
+function utilizacaoCartoes(fW,fY,fL){
+  return [
+    {nome:'Wellington', uso:fW, limite:S.limW, pct: S.limW? (fW/S.limW)*100 : 0},
+    {nome:'Yvoneide', uso:fY, limite:S.limY, pct: S.limY? (fY/S.limY)*100 : 0},
+    {nome:'Luana', uso:fL, limite:S.limL, pct: S.limL? (fL/S.limL)*100 : 0},
+  ];
+}
+
+// ── Economia potencial e ranking de vazamentos ──
+function calcularEconomiaPotencial(analises, pctCorte){
+  const baseCorte = analises.delivery.total + analises.comprasImpulso.total +
+                     analises.assinaturas.totalMensal + analises.transporte.naoEssencial;
+  const economiaMensal = baseCorte * (pctCorte/100);
+  return {baseCorte, economiaMensal, economiaAnual: economiaMensal*12};
+}
+function rankingVazamentos(analises){
+  const vaz = [
+    {nome:'🍔 Delivery', valor:analises.delivery.total, recuperavel:analises.delivery.total*0.5},
+    {nome:'⚡ Compras por impulso', valor:analises.comprasImpulso.total, recuperavel:analises.comprasImpulso.total*0.7},
+    {nome:'📦 Assinaturas', valor:analises.assinaturas.totalMensal, recuperavel:analises.assinaturas.totalMensal*0.3},
+    {nome:'🚗 Transporte não essencial', valor:analises.transporte.naoEssencial, recuperavel:analises.transporte.naoEssencial*0.4},
+    {nome:'🔁 Gastos repetitivos', valor:analises.repetitivos.reduce((s,g)=>s+g.valor,0), recuperavel:analises.repetitivos.reduce((s,g)=>s+g.valor,0)*0.3},
+  ];
+  return vaz.filter(v=>v.valor>0).sort((a,b)=>b.recuperavel-a.recuperavel);
+}
+function gerarPlanoSairDoVermelho(saldoLivreAtual, ranking){
+  if(saldoLivreAtual>=0){
+    return {situacao:'positivo', mensagem:'Seu saldo já está positivo — foco agora é poupança, não correção.'};
+  }
+  const deficit = Math.abs(saldoLivreAtual);
+  let acumulado = 0;
+  const acoes = [];
+  for(const v of ranking){
+    if(acumulado>=deficit)break;
+    const corte = Math.min(v.recuperavel, deficit-acumulado);
+    if(corte<=0)continue;
+    acoes.push({area:v.nome, cortar:corte});
+    acumulado += corte;
+  }
+  const cobreTudo = acumulado>=deficit;
+  return {
+    situacao: cobreTudo?'recuperavel':'parcial',
+    deficit, acumulado, acoes,
+    mensagem: cobreTudo
+      ? `Cortando ${acoes.map(a=>`${fmt(a.cortar)} em ${a.area}`).join(', ')}, você sai do vermelho.`
+      : `Mesmo cortando tudo que é recuperável (${fmt(acumulado)}), ainda falta ${fmt(deficit-acumulado)}/mês — pode ser hora de olhar fontes de renda extra ou renegociar dívidas com juros altos.`
+  };
+}
+
+// ── Alertas automáticos (frases) ──
+function gerarAlertas(analises, categoriasCresceram){
+  const alertas = [];
+  categoriasCresceram.filter(c=>c.variacaoPct>20 && c.valorAtual>0).slice(0,3).forEach(c=>{
+    alertas.push(`Seu gasto com ${c.categoria} aumentou ${c.variacaoPct.toFixed(0)}% em relação ao período anterior.`);
+  });
+  if(analises.delivery.total>0){
+    alertas.push(`Você gastou ${fmt(analises.delivery.total)} em delivery no período, em ${analises.delivery.qtd} pedido(s).`);
+  }
+  if(analises.comprasImpulso.qtd>0){
+    alertas.push(`Você realizou ${analises.comprasImpulso.qtd} compra(s) acima de ${fmt(S.limiarImpulso)} que parecem não-essenciais, somando ${fmt(analises.comprasImpulso.total)}.`);
+  }
+  if(analises.parcelamentos.qtdAtivas>0){
+    alertas.push(`Você possui ${analises.parcelamentos.qtdAtivas} parcela(s) ativa(s) que comprometem ${fmt(analises.parcelamentos.comprometidoMesAtual)} dos próximos meses.`);
+  }
+  return alertas;
+}
+
+window.salvarLimiarImpulso=(v)=>{
+  S.limiarImpulso = parseFloat(v)||50;
+  scheduleSave();
+  window.renderInteligenciaFinanceira();
+};
+
+let ultimaAnaliseFinanceira = null;
+
+window.renderInteligenciaFinanceira=()=>{
+  const dias = parseInt(document.getElementById('if-periodo')?.value || 30);
+  const periodoAtual = filtrarPorPeriodo(S.transacoesImportadas, dias, 0);
+  const periodoAnterior = filtrarPorPeriodo(S.transacoesImportadas, dias, dias);
+
+  const avisoEl = document.getElementById('if-aviso-sem-dados');
+  const conteudoEl = document.getElementById('if-conteudo');
+  if(periodoAtual.length < 3){
+    avisoEl.style.display='block';
+    conteudoEl.style.display='none';
+    return;
+  }
+  avisoEl.style.display='none';
+  conteudoEl.style.display='block';
+
+  document.getElementById('if-limiar-impulso').value = S.limiarImpulso;
+
+  const totalGasto = periodoAtual.reduce((s,t)=>s+t.valor,0);
+  $s('if-total-gasto', fmt(totalGasto));
+  document.getElementById('if-total-sub').textContent = `últimos ${dias} dias`;
+  $s('if-qtd-transacoes', String(periodoAtual.length));
+
+  // ranking de gastos (top 10 transações individuais)
+  const topGastos = [...periodoAtual].sort((a,b)=>b.valor-a.valor).slice(0,10);
+  document.getElementById('if-ranking-gastos').innerHTML = topGastos.map(t=>
+    `<div class="row"><span class="row-left" style="font-size:12px;">${t.data} · ${t.descricao} <span class="tag tgray">${t.categoria}</span></span><span class="row-right" style="font-weight:700;">${fmt(t.valor)}</span></div>`
+  ).join('') || '<div class="empty">Sem dados</div>';
+
+  // estabelecimentos
+  const topEstab = rankingEstabelecimentos(periodoAtual, 5);
+  document.getElementById('if-ranking-estabelecimentos').innerHTML = topEstab.map((e,i)=>
+    `<div class="row"><span class="row-left" style="font-size:12px;">${i+1}º · ${e.nome} <span class="tag tgray">${e.ocorrencias}x</span></span><span class="row-right" style="font-weight:700;">${fmt(e.valor)}</span></div>`
+  ).join('') || '<div class="empty">Sem dados</div>';
+
+  // categorias que mais cresceram
+  const categoriasCresceram = categoriasQueMaisCresceram(periodoAtual, periodoAnterior);
+  document.getElementById('if-categorias-cresceram').innerHTML = categoriasCresceram.slice(0,6).map(c=>{
+    const cor = c.variacaoPct>0 ? 'var(--red)' : 'var(--green)';
+    const sinal = c.variacaoPct>0 ? '▲' : '▼';
+    return `<div class="row"><span class="row-left" style="font-size:12px;">${c.categoria}</span><span class="row-right" style="font-weight:700;color:${cor};">${sinal} ${Math.abs(c.variacaoPct).toFixed(0)}% <span style="color:var(--text-3);font-weight:500;">(${fmt(c.valorAtual)})</span></span></div>`;
+  }).join('') || '<div class="empty">Sem dados suficientes para comparação</div>';
+
+  // analisadores
+  const analises = {
+    assinaturas: analisarAssinaturas(periodoAtual),
+    delivery: analisarDelivery(periodoAtual),
+    transporte: analisarTransporte(periodoAtual),
+    comprasImpulso: analisarComprasImpulso(periodoAtual, S.limiarImpulso),
+    repetitivos: gastosRepetitivos(periodoAtual),
+    parcelamentos: analisarParcelamentos(),
+  };
+  ultimaAnaliseFinanceira = analises;
+
+  // alertas
+  const alertas = gerarAlertas(analises, categoriasCresceram);
+  document.getElementById('if-alertas').innerHTML = alertas.length
+    ? alertas.map(a=>`<div class="ib amber" style="margin-bottom:6px;"><span class="ib-icon">💡</span><span>${a}</span></div>`).join('')
+    : '<div class="empty">Nenhum alerta no momento</div>';
+
+  // saldo / status do detector de vazamentos
+  const saldoLivre = parseFloat((document.getElementById('h-saldo')?.textContent||'0').replace(/[^\d,-]/g,'').replace(',','.')) || 0;
+  document.getElementById('if-saldo-status').textContent = saldoLivre>=0
+    ? `Seu saldo livre está positivo (${fmt(saldoLivre)}). O foco aqui é identificar onde dá pra poupar mais.`
+    : `Seu saldo livre está negativo (${fmt(saldoLivre)}). Veja abaixo onde estão os principais vazamentos.`;
+
+  window.renderEconomiaPotencial();
+
+  // ranking de vazamentos
+  const ranking = rankingVazamentos(analises);
+  document.getElementById('if-ranking-vazamentos').innerHTML = ranking.length ? ranking.map(v=>
+    `<div class="row"><span class="row-left" style="font-size:12px;">${v.nome}</span><div style="text-align:right;"><div style="font-weight:700;">${fmt(v.valor)}</div><div style="font-size:11px;color:var(--green);">recuperável: ${fmt(v.recuperavel)}</div></div></div>`
+  ).join('') : '<div class="empty">Nenhum vazamento identificado</div>';
+
+  // cards individuais
+  document.getElementById('if-assinaturas').innerHTML = analises.assinaturas.itens.length
+    ? analises.assinaturas.itens.map(i=>`<div class="row"><span class="row-left" style="font-size:12px;">${i.nome}</span><span class="row-right">${fmt(i.valor)}</span></div>`).join('') + `<div class="divider"></div><div class="row"><span class="row-left" style="font-weight:700;">Total/mês</span><span class="row-right" style="font-weight:700;">${fmt(analises.assinaturas.totalMensal)}</span></div>`
+    : '<div class="empty">Nenhuma assinatura detectada</div>';
+
+  document.getElementById('if-delivery').innerHTML = analises.delivery.qtd
+    ? `<div class="row"><span class="row-left" style="font-size:12px;">Total</span><span class="row-right" style="font-weight:700;">${fmt(analises.delivery.total)}</span></div><div class="row"><span class="row-left" style="font-size:12px;">Pedidos</span><span class="row-right">${analises.delivery.qtd}</span></div><div class="row"><span class="row-left" style="font-size:12px;">Média/pedido</span><span class="row-right">${fmt(analises.delivery.mediaCompra)}</span></div>`
+    : '<div class="empty">Nenhum delivery no período</div>';
+
+  document.getElementById('if-transporte').innerHTML = analises.transporte.qtd
+    ? `<div class="row"><span class="row-left" style="font-size:12px;">Total</span><span class="row-right" style="font-weight:700;">${fmt(analises.transporte.total)}</span></div><div class="row"><span class="row-left" style="font-size:12px;">Não essencial</span><span class="row-right" style="color:var(--amber);">${fmt(analises.transporte.naoEssencial)}</span></div>`
+    : '<div class="empty">Nenhum transporte no período</div>';
+
+  document.getElementById('if-impulso').innerHTML = analises.comprasImpulso.itens.length
+    ? analises.comprasImpulso.itens.slice(0,8).map(t=>`<div class="row"><span class="row-left" style="font-size:12px;">${t.data} · ${t.descricao}</span><span class="row-right">${fmt(t.valor)}</span></div>`).join('')
+    : '<div class="empty">Nenhuma compra acima do limiar</div>';
+
+  document.getElementById('if-repetitivos').innerHTML = analises.repetitivos.length
+    ? analises.repetitivos.map(g=>`<div class="row"><span class="row-left" style="font-size:12px;">${g.nome} <span class="tag tgray">${g.ocorrencias}x</span></span><span class="row-right">${fmt(g.valor)}</span></div>`).join('')
+    : '<div class="empty">Nenhum gasto repetitivo identificado</div>';
+
+  document.getElementById('if-parcelamentos').innerHTML = `
+    <div class="row"><span class="row-left" style="font-size:12px;">Parcelas ativas</span><span class="row-right">${analises.parcelamentos.qtdAtivas}</span></div>
+    <div class="row"><span class="row-left" style="font-size:12px;">Comprometido este mês</span><span class="row-right" style="font-weight:700;color:var(--amber);">${fmt(analises.parcelamentos.comprometidoMesAtual)}</span></div>
+    <div class="row"><span class="row-left" style="font-size:12px;">Total restante a pagar</span><span class="row-right">${fmt(analises.parcelamentos.comprometidoTotal)}</span></div>`;
+
+  const fW = parseFloat((document.getElementById('fw')?.textContent||'0').replace(/[^\d,-]/g,'').replace(',','.'))||0;
+  const fY = parseFloat((document.getElementById('fy')?.textContent||'0').replace(/[^\d,-]/g,'').replace(',','.'))||0;
+  const fL = parseFloat((document.getElementById('fl')?.textContent||'0').replace(/[^\d,-]/g,'').replace(',','.'))||0;
+  const utilizacao = utilizacaoCartoes(fW,fY,fL);
+  document.getElementById('if-utilizacao-cartoes').innerHTML = utilizacao.map(u=>{
+    const cor = u.pct>90?'var(--red)':u.pct>60?'var(--amber)':'var(--green)';
+    return `<div class="row"><span class="row-left" style="font-size:12px;">${u.nome}</span><span class="row-right" style="font-weight:700;color:${cor};">${u.pct.toFixed(0)}% (${fmt(u.uso)} de ${fmt(u.limite)})</span></div>`;
+  }).join('');
+
+  // plano para sair do vermelho
+  const plano = gerarPlanoSairDoVermelho(saldoLivre, ranking);
+  const corPlano = plano.situacao==='positivo' ? 'green' : plano.situacao==='recuperavel' ? 'green' : 'amber';
+  document.getElementById('if-plano-vermelho').innerHTML = `<div class="ib ${corPlano}"><span class="ib-icon">${plano.situacao==='positivo'?'🎉':plano.situacao==='recuperavel'?'✅':'⚠️'}</span><span>${plano.mensagem}</span></div>`;
+};
+
+window.renderEconomiaPotencial=()=>{
+  if(!ultimaAnaliseFinanceira)return;
+  const pct = parseInt(document.getElementById('if-pct-corte').value);
+  document.getElementById('if-pct-corte-label').textContent = pct;
+  const eco = calcularEconomiaPotencial(ultimaAnaliseFinanceira, pct);
+  $s('if-economia-mensal', fmt(eco.economiaMensal));
+  $s('if-economia-anual', fmt(eco.economiaAnual));
 };
 
 function parseDataCompra(d){
@@ -1742,7 +2126,7 @@ function updateAll(){
 }
 
 // ── TABS ──
-window.showTab=(t,btn)=>{document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');if(btn)btn.classList.add('active');if(t==='config')window.fillCfg();if(t==='importar')window.renderTransacoesImportadas();};
+window.showTab=(t,btn)=>{document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');if(btn)btn.classList.add('active');if(t==='config')window.fillCfg();if(t==='importar')window.renderTransacoesImportadas();if(t==='inteligencia')window.renderInteligenciaFinanceira();};
 window.showTabBtn=t=>{const tabs=['painel','cartoes','despesas','lancamento','emprestimos','config'];document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach((b,i)=>{b.classList.remove('active');if(tabs[i]===t)b.classList.add('active');});document.getElementById('tab-'+t).classList.add('active');};
 
 // ── SIMULAR ──
