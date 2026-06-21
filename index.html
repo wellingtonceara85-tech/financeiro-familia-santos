@@ -1052,6 +1052,32 @@ function deduplicarTransacoes(novas, existentes){
   return novas.filter(t => !chavesExistentes.has(chaveDe(t)));
 }
 
+// Monta um índice "data|valor" de tudo que já está lançado manualmente nos 3 cartões
+// (compras parceladas e permanentes), para detectar possíveis duplicatas na importação.
+function indiceComprasManuais(){
+  const indice = new Map(); // chave "DD/MM/AAAA|valor.XX" -> [{cartao, descricao}]
+  [['Wellington',S.parW],['Yvoneide',S.parY],['Luana',S.parL]].forEach(([cartaoNome, lista])=>{
+    lista.forEach(p=>{
+      if(!p.dataCompra)return;
+      const chave = `${p.dataCompra}|${p.v.toFixed(2)}`;
+      if(!indice.has(chave))indice.set(chave, []);
+      indice.get(chave).push({cartao:cartaoNome, descricao:p.d});
+    });
+  });
+  return indice;
+}
+
+// Marca cada transação pendente com possivelDuplicata (data+valor batem com algo já lançado manualmente).
+// Não remove automaticamente -- só sinaliza, já que coincidência de data+valor entre compras diferentes é possível.
+function marcarPossiveisDuplicatas(transacoes){
+  const indice = indiceComprasManuais();
+  return transacoes.map(t=>{
+    const chave = `${t.data}|${t.valor.toFixed(2)}`;
+    const match = indice.get(chave);
+    return match ? {...t, possivelDuplicata:true, duplicataInfo:match[0]} : {...t, possivelDuplicata:false};
+  });
+}
+
 let transacoesPendentesImportacao = [];
 
 window.handleArquivoImportado=async(event)=>{
@@ -1083,14 +1109,18 @@ window.handleArquivoImportado=async(event)=>{
     const semDuplicadas = deduplicarTransacoes(brutas, S.transacoesImportadas);
     const duplicadasCount = brutas.length - semDuplicadas.length;
     // classifica automaticamente cada transação
-    transacoesPendentesImportacao = semDuplicadas.map(t => ({
+    let pendentes = semDuplicadas.map(t => ({
       id:'imp'+Date.now()+Math.random().toString(36).slice(2,7),
       ...t,
       ...classificarTransacao(t.descricao, t.valor),
       recorrente:false,
     }));
+    // marca possíveis duplicatas contra compras já lançadas manualmente nos cartões
+    pendentes = marcarPossiveisDuplicatas(pendentes);
+    transacoesPendentesImportacao = pendentes;
+    const possiveisDupCount = pendentes.filter(t=>t.possivelDuplicata).length;
     statusEl.innerHTML = transacoesPendentesImportacao.length
-      ? `<div class="ib green"><span class="ib-icon">✅</span><span>${transacoesPendentesImportacao.length} transação(ões) encontrada(s)${duplicadasCount?` · ${duplicadasCount} já estavam importadas (ignoradas)`:''}.</span></div>`
+      ? `<div class="ib green"><span class="ib-icon">✅</span><span>${transacoesPendentesImportacao.length} transação(ões) encontrada(s)${duplicadasCount?` · ${duplicadasCount} já estavam importadas (ignoradas)`:''}${possiveisDupCount?` · ⚠️ ${possiveisDupCount} parecem já estar lançadas manualmente nos cartões (marcadas abaixo, confira antes de confirmar)`:''}.</span></div>`
       : `<div class="ib amber"><span class="ib-icon">ℹ️</span><span>Todas as ${brutas.length} transações desse arquivo já tinham sido importadas antes.</span></div>`;
     renderPreviewImportacao();
   }catch(e){
@@ -1108,17 +1138,40 @@ function renderPreviewImportacao(){
   if(!transacoesPendentesImportacao.length){ card.style.display='none'; return; }
   card.style.display='block';
   const total = transacoesPendentesImportacao.reduce((s,t)=>s+t.valor,0);
-  resumo.textContent = `${transacoesPendentesImportacao.length} transações · Total: ${fmt(total)}`;
+  const dupCount = transacoesPendentesImportacao.filter(t=>t.possivelDuplicata).length;
+  resumo.textContent = `${transacoesPendentesImportacao.length} transações · Total: ${fmt(total)}${dupCount?` · ⚠️ ${dupCount} possível(is) duplicata(s)`:''}`;
   lista.innerHTML = transacoesPendentesImportacao.map((t,i)=>`
-    <div class="row" style="flex-wrap:wrap;gap:6px;padding:8px 0;">
-      <span class="row-left" style="font-size:12px;flex:1;min-width:140px;">${t.data} · ${t.descricao}</span>
+    <div class="row" style="flex-wrap:wrap;gap:6px;padding:8px 0;${t.possivelDuplicata?'background:rgba(245,158,11,0.08);border-radius:8px;':''}">
+      <span class="row-left" style="font-size:12px;flex:1;min-width:140px;">
+        ${t.data} · ${t.descricao}
+        ${t.possivelDuplicata?`<br><span class="tag ta" style="margin-top:3px;display:inline-block;">⚠️ Já lançado em ${t.duplicataInfo.cartao}: "${t.duplicataInfo.descricao}"</span>`:''}
+      </span>
       <select style="font-size:11px;padding:3px 6px;border-radius:6px;background:var(--surface3);color:var(--text-2);border:1px solid var(--border-md);" onchange="window.alterarCategoriaPreview(${i}, this.value)">
         ${['Mercado','Alimentação','Transporte','Combustível','Saúde','Assinaturas','Compras','Educação','Lazer','Outros'].map(c=>`<option ${t.categoria===c?'selected':''}>${c}</option>`).join('')}
       </select>
       <button class="btn-dx" style="background:${t.essencial?'var(--green-light)':'var(--surface3)'};color:${t.essencial?'var(--green)':'var(--text-2)'};" onclick="window.toggleEssencialPreview(${i})" title="Essencial">${t.essencial?'✅ Essencial':'🛒 Supérfluo'}</button>
       <span style="font-weight:700;font-size:12px;min-width:70px;text-align:right;">${fmt(t.valor)}</span>
+      <button class="btn-dx" onclick="window.removerDoLotePreview(${i})" title="Não importar este item">✕</button>
     </div>`).join('');
+  if(dupCount){
+    let avisoEl = document.getElementById('import-aviso-dup');
+    if(!avisoEl){
+      avisoEl = document.createElement('div');
+      avisoEl.id = 'import-aviso-dup';
+      lista.parentElement.insertBefore(avisoEl, lista);
+    }
+    avisoEl.innerHTML = `<div class="ib amber" style="margin-bottom:10px;"><span class="ib-icon">⚠️</span><span>${dupCount} transação(ões) parecem já estar lançadas manualmente nos cartões (mesma data e valor). Revise e use o ✕ para remover do lote antes de confirmar, se for o caso.</span></div>`;
+  }else{
+    document.getElementById('import-aviso-dup')?.remove();
+  }
 }
+window.removerDoLotePreview=(i)=>{
+  transacoesPendentesImportacao.splice(i,1);
+  renderPreviewImportacao();
+  if(!transacoesPendentesImportacao.length){
+    document.getElementById('import-status').innerHTML = '<div class="ib amber"><span class="ib-icon">ℹ️</span><span>Todos os itens foram removidos do lote.</span></div>';
+  }
+};
 window.alterarCategoriaPreview=(i, categoria)=>{
   transacoesPendentesImportacao[i].categoria = categoria;
   transacoesPendentesImportacao[i].origemClassificacao = 'manual';
@@ -1137,10 +1190,13 @@ window.confirmarImportacao=()=>{
       window.salvarCorrecaoClassificacao(t.descricao, t.categoria, t.subcategoria, t.essencial);
     }
   });
-  S.transacoesImportadas.push(...transacoesPendentesImportacao);
+  // remove campos auxiliares de UI (possivelDuplicata/duplicataInfo) antes de persistir
+  const paraSalvar = transacoesPendentesImportacao.map(({possivelDuplicata, duplicataInfo, ...resto}) => resto);
+  S.transacoesImportadas.push(...paraSalvar);
   const qtd = transacoesPendentesImportacao.length;
   transacoesPendentesImportacao = [];
   document.getElementById('import-preview-card').style.display='none';
+  document.getElementById('import-aviso-dup')?.remove();
   document.getElementById('import-status').innerHTML = `<div class="ib green"><span class="ib-icon">✅</span><span>${qtd} transação(ões) importada(s) com sucesso!</span></div>`;
   scheduleSave();
   window.renderTransacoesImportadas();
@@ -1149,6 +1205,7 @@ window.confirmarImportacao=()=>{
 window.cancelarImportacao=()=>{
   transacoesPendentesImportacao = [];
   document.getElementById('import-preview-card').style.display='none';
+  document.getElementById('import-aviso-dup')?.remove();
   document.getElementById('import-status').innerHTML = '';
 };
 
