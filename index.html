@@ -380,6 +380,7 @@ select option{background:#1e1e35;}
     <div class="hcard g"><div class="hcard-icon">🗓️</div><div class="hcard-label">Saldo Dia 05</div><div class="hcard-value" id="h-saldo05">—</div><div class="hcard-sub" id="h-saldo05-sub">Disponível</div></div>
     <div class="hcard g"><div class="hcard-icon">🗓️</div><div class="hcard-label">Saldo Dia 20</div><div class="hcard-value" id="h-saldo20">—</div><div class="hcard-sub" id="h-saldo20-sub">Disponível</div></div>
   </div>
+  <div id="status-importacao" style="margin-top:10px;"></div>
 </div>
 
 <!-- ── NAV ── -->
@@ -1021,23 +1022,23 @@ async function extrairTextoPDF(arrayBuffer){
   return textoCompleto;
 }
 function extrairTransacoesDoPDFNubank(texto, mesReferencia){
-  // Padrão real validado: "16 JUN •••• 6286 Super Amigao R$ 163,41" (mês/ano vem do contexto da fatura)
+  // Padrão real validado contra 3 faturas oficiais do Nubank (Abr/Mai/Jun 2026):
+  // "05 MAI   •••• 3028   Luc - Parcela 3/3   R$ 66,00" — campos separados por 2-3 espaços,
+  // com o prefixo "•••• NNNN" (últimos dígitos do cartão) como assinatura inconfundível de transação real.
+  // Isso evita capturar texto corrido de parágrafos (resumo, alternativas de pagamento, limites etc.),
+  // já que o PDF.js extrai tudo em uma única linha sem quebras entre parágrafos.
   const meses = {JAN:1,FEV:2,MAR:3,ABR:4,MAI:5,JUN:6,JUL:7,AGO:8,SET:9,OUT:10,NOV:11,DEZ:12};
-  const regex = /(\d{2})\s?(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[ \t]+([^\n\r]+?)[ \t]+R\$\s?(-?[\d.,]+)/g;
+  const regex = /(\d{2})\s(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s{2,3}[•·●○]{2,}\s*\d{3,4}\s{2,3}(.+?)\s{2,3}R\$\s?(-?[\d.,]+)/g;
   const transacoes = [];
   let m;
   while((m = regex.exec(texto)) !== null){
     const dia = m[1], mesAbrev = m[2], valorStr = m[4];
-    let descricao = m[3].trim();
-    // remove prefixo de "•••• 1234" (últimos dígitos do cartão) que o Nubank imprime antes do nome do estabelecimento
-    descricao = descricao.replace(/^[•·●○]{2,}\s*\d{3,4}\s*/, '').trim();
-    // ignora linhas de cabeçalho/resumo que por acaso batem no padrão (raro após a correção do regex acima)
-    if(/^TRANSAÇ|^DE\s\d/.test(descricao)) continue;
-    if(descricao.length < 2) continue;
+    const descricao = m[3].trim();
+    if(descricao.length < 2 || descricao.length > 80) continue; // descrição real nunca é tão longa
     const mesNum = meses[mesAbrev];
     if(!mesNum) continue;
     const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'));
-    if(isNaN(valor) || valor<=0) continue; // ignora estornos/negativos e linhas mal capturadas
+    if(isNaN(valor) || valor<=0) continue; // ignora estornos/negativos
     // monta ano: usa o ano do mesReferencia, ajustando se o mês da transação for "antes" (virada de ano)
     let ano = mesReferencia ? parseInt(mesReferencia.split('-')[0]) : new Date().getFullYear();
     transacoes.push({data:`${dia}/${String(mesNum).padStart(2,'0')}/${ano}`, descricao, valor, origem:'pdf'});
@@ -2180,6 +2181,35 @@ function updateAll(){
   renderEmp();
   renderGraficoFaturas();
   renderFaturasPagas();
+  renderStatusImportacao();
+}
+
+// ── STATUS DA ÚLTIMA IMPORTAÇÃO ──
+function renderStatusImportacao(){
+  const el = document.getElementById('status-importacao');
+  if(!el)return;
+  if(!S.transacoesImportadas.length){
+    el.innerHTML = `<div class="ib amber"><span class="ib-icon">📥</span><span>Você ainda não importou nenhum extrato/fatura. Vá em <strong>📥 Importar</strong> para começar a alimentar a Inteligência Financeira.</span></div>`;
+    return;
+  }
+  // pega a data de importação mais recente (campo 'data' da transação, formato DD/MM/AAAA)
+  let maisRecente = null;
+  S.transacoesImportadas.forEach(t=>{
+    const d = parseDataBR(t.data);
+    if(d && (!maisRecente || d>maisRecente)) maisRecente = d;
+  });
+  if(!maisRecente){ el.innerHTML=''; return; }
+  const hoje = new Date();
+  const dias = Math.floor((hoje - maisRecente) / (1000*60*60*24));
+  let cor, icone, msg;
+  if(dias <= 35){
+    cor='green'; icone='✅'; msg=`Última importação há ${dias} dia${dias!==1?'s':''}. Tudo em dia!`;
+  }else if(dias <= 50){
+    cor='amber'; icone='⏰'; msg=`Última importação há ${dias} dias. Já passou um mês — hora de baixar os extratos/faturas mais recentes.`;
+  }else{
+    cor='red'; icone='🚨'; msg=`Última importação há ${dias} dias! A Inteligência Financeira está desatualizada — importe os extratos/faturas recentes para os insights continuarem precisos.`;
+  }
+  el.innerHTML = `<div class="ib ${cor}"><span class="ib-icon">${icone}</span><span>${msg}</span></div>`;
 }
 
 // ── TABS ──
